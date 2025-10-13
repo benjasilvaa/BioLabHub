@@ -78,9 +78,16 @@ def crear_bd():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             titulo TEXT NOT NULL,
             descripcion TEXT NOT NULL,
-            
-                   
-                   
+            responsable_id INTEGER,
+            fecha_inicio DATE,
+            fecha_fin DATE,
+            estado TEXT,
+            estado_logico INTEGER DEFAULT 0,
+            dvh INTEGER,
+            FOREIGN KEY (responsable_id) REFERENCES usuarios(id)
         )
-
-""")
+        """)
+    
+    conn.commit()
+    print("base de datos creada correctamente")
+    conn.close()
