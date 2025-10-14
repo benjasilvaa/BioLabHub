@@ -88,6 +88,34 @@ def crear_bd():
         )
         """)
     
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS verificaciones_verticales (
+            tabla TEXT PRIMARY KEY,
+            dvv INTEGER
+        )
+        """)
+    
     conn.commit()
     print("base de datos creada correctamente")
     conn.close()
+
+def calcular_dvh(datos):
+    total = 0
+    for valor in datos.values():
+        total += len(str(valor))
+    return total
+
+def recalcular_dvv(tabla):
+    conexion = conectar_bd()
+    cursor = conexion.cursor()
+    cursor.execute(f"SELECT dvh FROM {tabla} WHERE dvh IS NOT NULL")
+    suma = sum(fila[0] for fila in cursor.fetchall())
+    cursor.execute("SELECT dvv FROM verificaciones_verticales WHERE tabla=?", (tabla,))
+    if cursor.fetchone():
+        cursor.execute("UPDATE verificaciones_verticales SET dvv=? WHERE tabla=?", (suma, tabla))
+    else:
+        cursor.execute("INSERT INTO verificaciones_verticales (tabla, dvv) VALUES (?, ?)", (tabla, suma))
+    conexion.commit()
+    conexion.close()
+
+
