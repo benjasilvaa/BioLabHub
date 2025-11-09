@@ -21,6 +21,9 @@ def crear_bd():
     conn = conectar_bd()
     cursor = conn.cursor()
 
+    # ===============================
+    # 🧱 CREACIÓN DE TABLAS BASE
+    # ===============================
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,8 +36,8 @@ def crear_bd():
             fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             ultima_sesion TIMESTAMP
         )
-        """)
-    
+    """)
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS audits_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,8 +50,8 @@ def crear_bd():
             dvh INTEGER,
             FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
         )
-        """)
-    
+    """)
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS muestras (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,8 +65,8 @@ def crear_bd():
             dvh INTEGER,
             FOREIGN KEY (responsable_id) REFERENCES usuarios(id)
         )
-        """)
-    
+    """)
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS reactivos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,7 +79,8 @@ def crear_bd():
             dvh INTEGER,
             FOREIGN KEY (responsable_id) REFERENCES usuarios(id)
         )
-        """)
+    """)
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS experimentos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,29 +89,81 @@ def crear_bd():
             responsable_id INTEGER,
             fecha_inicio DATE,
             fecha_fin DATE,
+            protocolo_archivo TEXT,
             estado TEXT,
             estado_logico INTEGER DEFAULT 0,
             dvh INTEGER,
             FOREIGN KEY (responsable_id) REFERENCES usuarios(id)
         )
-        """)
-    
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS laboratorios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL UNIQUE,
+            ubicacion TEXT,
+            estado_logico INTEGER DEFAULT 0,
+            dvh INTEGER
+        )
+    """)
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS verificaciones_verticales (
             tabla TEXT PRIMARY KEY,
             dvv INTEGER
         )
-        """)
-    
+    """)
+
     conn.commit()
-    print("base de datos creada correctamente")
+
+    # ===============================
+    # 🧠 AUTO-ACTUALIZADOR DE COLUMNAS
+    # ===============================
+    def asegurar_columna(tabla, columna, tipo):
+        cursor.execute(f"PRAGMA table_info({tabla})")
+        columnas_existentes = [col[1] for col in cursor.fetchall()]
+        if columna not in columnas_existentes:
+            print(f"🔧 Agregando columna '{columna}' a la tabla '{tabla}'...")
+            try:
+                cursor.execute(f"ALTER TABLE {tabla} ADD COLUMN {columna} {tipo}")
+                conn.commit()
+                print(f"✅ Columna '{columna}' agregada correctamente.")
+            except Error as e:
+                print(f"⚠️ No se pudo agregar la columna '{columna}' a '{tabla}': {e}")
+
+    # 🔹 Ejemplo: verificar columnas que podrían faltar
+    asegurar_columna("experimentos", "protocolo_archivo", "TEXT")
+    asegurar_columna("usuarios", "ultima_sesion", "TIMESTAMP")
+    asegurar_columna("muestras", "fecha_ingreso", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+
+    # ===============================
+    # 📦 LABORATORIOS BASE (si está vacío)
+    # ===============================
+    cursor.execute("SELECT COUNT(*) FROM laboratorios")
+    if cursor.fetchone()[0] == 0:
+        labs_iniciales = [
+            ("Laboratorio de Microbiología", "Planta Baja"),
+            ("Laboratorio Químico", "1° Piso"),
+            ("Laboratorio de Biología Molecular", "2° Piso"),
+            ("Cámara Fría", "Subsuelo"),
+            ("Depósito de Muestras", "Planta Baja"),
+            ("Área de Preparación", "Planta Alta"),
+            ("Sala de Esterilización", "1° Piso")
+        ]
+        cursor.executemany("INSERT INTO laboratorios (nombre, ubicacion) VALUES (?, ?)", labs_iniciales)
+        print("✅ Laboratorios base insertados.")
+
+    conn.commit()
     conn.close()
+    print("🧩 Base de datos verificada y actualizada correctamente.")
+
 
 def calcular_dvh(datos):
     total = 0
     for valor in datos.values():
         total += len(str(valor))
     return total
+
 
 def recalcular_dvv(tabla):
     conexion = conectar_bd()
@@ -121,6 +177,7 @@ def recalcular_dvv(tabla):
         cursor.execute("INSERT INTO verificaciones_verticales (tabla, dvv) VALUES (?, ?)", (tabla, suma))
     conexion.commit()
     conexion.close()
+
 
 def ejecutar_select(query, parametros=()):
     conn = conectar_bd()
@@ -148,6 +205,7 @@ def ejecutar_update(query, parametros=()):
     conn.commit()
     conn.close()
 
+
 def registrar_auditoria(usuario_id, accion, tabla, registro_id, ip_origen):
     datos = {
         "usuario_id": usuario_id,
@@ -165,5 +223,3 @@ def registrar_auditoria(usuario_id, accion, tabla, registro_id, ip_origen):
 
     ejecutar_insert(query, (usuario_id, accion, tabla, registro_id, datetime.now(), ip_origen, dvh))
     recalcular_dvv("audits_logs")
-
-

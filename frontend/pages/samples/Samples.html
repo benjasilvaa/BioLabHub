@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SampleTrack - BioLabHub</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='samples/Samples.css') }}">
+</head>
+
+<body>
+  <!-- 🔵 Navbar -->
+  <nav class="navbar">
+    <div class="logo-container">
+      <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
+    </div>
+    <div class="user-avatar">
+      <span>👤 {{ session['nombre'] }}</span>
+      <a href="{{ url_for('login_bp.logout') }}" class="logout-btn">Cerrar sesión</a>
+    </div>
+  </nav>
+
+  <div class="content">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <nav>
+        <a href="{{ url_for('home') }}">Inicio</a>
+        <a href="{{ url_for('experiments_bp.experiments') }}">Experiment Planner</a>
+        <a href="{{ url_for('samples_bp.samples') }}" class="active">SampleTrack</a>
+      </nav>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="main">
+      <h1>🧫 SampleTrack – Seguimiento de Muestras</h1>
+
+      <!-- Formulario nueva muestra -->
+      <form class="form-nueva" method="POST" action="{{ url_for('samples_bp.add_sample') }}">
+        <input type="text" name="nombre" placeholder="Nombre de la muestra" required>
+        <input type="text" name="tipo" placeholder="Tipo">
+
+        <select name="ubicacion" required>
+          <option value="">-- Seleccionar laboratorio --</option>
+          {% for lab in laboratorios %}
+            <option value="{{ lab['nombre'] }}">{{ lab['nombre'] }}</option>
+          {% endfor %}
+        </select>
+
+        <select name="estado">
+          <option value="En almacenamiento">En almacenamiento</option>
+          <option value="En análisis">En análisis</option>
+          <option value="Descartada">Descartada</option>
+        </select>
+
+        <button type="submit">Agregar</button>
+      </form>
+
+      <!-- Listado de muestras -->
+      <h2>📋 Muestras registradas</h2>
+      {% if muestras %}
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Estado</th>
+            <th>Responsable</th>
+            <th>Ubicación</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in muestras %}
+          <tr>
+            <form method="POST" action="{{ url_for('samples_bp.update_sample', id=m['id']) }}">
+              <td><input name="nombre" value="{{ m['nombre'] }}"></td>
+              <td><input name="tipo" value="{{ m['tipo'] }}"></td>
+              <td>
+                <select name="estado">
+                  <option value="En almacenamiento" {% if m['estado']=='En almacenamiento' %}selected{% endif %}>En almacenamiento</option>
+                  <option value="En análisis" {% if m['estado']=='En análisis' %}selected{% endif %}>En análisis</option>
+                  <option value="Descartada" {% if m['estado']=='Descartada' %}selected{% endif %}>Descartada</option>
+                </select>
+              </td>
+              <td>{{ m['responsable'] or '—' }}</td>
+              <td>
+                <select name="ubicacion">
+                  {% for lab in laboratorios %}
+                    <option value="{{ lab['nombre'] }}" {% if m['ubicacion'] == lab['nombre'] %}selected{% endif %}>
+                      {{ lab['nombre'] }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td>
+                <button type="submit">💾</button>
+                <a href="{{ url_for('samples_bp.delete_sample', id=m['id']) }}" onclick="return confirm('¿Eliminar muestra?')">🗑️</a>
+              </td>
+            </form>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <p>No hay muestras registradas.</p>
+      {% endif %}
+
+      <!-- Eventos en tiempo real -->
+      <div id="eventos" class="eventos"></div>
+    </div>
+  </div>
+
+  <!-- Script SSE -->
+  <script>
+    const eventos = document.getElementById("eventos");
+    const source = new EventSource("{{ url_for('samples_bp.samples_stream') }}");
+    source.onmessage = function(event) {
+      const p = document.createElement("p");
+      p.textContent = "🔔 " + event.data;
+      p.classList.add("fade");
+      eventos.prepend(p);
+      // Mantiene solo los últimos 15 eventos
+      if (eventos.childElementCount > 15) eventos.removeChild(eventos.lastChild);
+    };
+  </script>
+</body>
+</html>
