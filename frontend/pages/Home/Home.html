@@ -4,65 +4,77 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BioLabHub - Home</title>
-  <link rel="stylesheet" href="Home.css" />
+
+  <!-- Carga el CSS desde la carpeta static -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='home/Home.css') }}" />
 </head>
 
 <body>
+  <!-- Navbar superior -->
   <nav class="navbar">
     <div class="logo-container">
-      <img src="../../assets/BioLabHub (negro).png" alt="BioLabHub Logo">
+      <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
     </div>
-    <div class="user-avatar"></div>
+    <div class="user-avatar">
+      <span>👤 {{ session['nombre'] if 'nombre' in session else 'Invitado' }}</span>
+      <a href="{{ url_for('login_bp.logout') }}" class="logout-btn">Cerrar sesión</a>
+    </div>
   </nav>
 
+  <!-- Contenedor general -->
   <div class="content">
+    <!-- Sidebar de navegación -->
     <div class="sidebar">
       <nav>
-        <a href="#">SampleTrack</a>
-        <a href="#">ReagentVault</a>
-        <a href="#">Experiment Planner</a>
-        <a href="#">CultureWatch</a>
+        <a href="{{ url_for('home') }}">Inicio</a>
+        <a href="{{ url_for('experiments_bp.experiments') }}">SampleTrack</a>
+        <a href="{{ url_for('experiments_bp.experiments') }}">Experiment Planner</a>
+        <a href="{{ url_for('reagents') }}">ReagentVault</a>
       </nav>
     </div>
 
+    <!-- Contenido principal -->
     <div class="main">
-    <section class="experiments">
+
+      <!-- Sección de experimentos -->
+      <section class="experiments">
         <h2>TUS EXPERIMENTOS</h2>
         <div class="experiment-list">
-        <div class="experiment">
-            <img src="../../assets/lab1.png" alt="Exp. Caseros">
+          <div class="experiment">
+            <img src="{{ url_for('static', filename='assets/lab1.png') }}" alt="Exp. Caseros">
             <div class="overlay">
-            <h3>Exp. Caseros</h3>
-            <p>Lorem ipsum es el texto que se usa habitualmente en diseño gráfico </p>
+              <h3>Exp. Caseros</h3>
+              <p>Lorem ipsum es el texto que se usa habitualmente en diseño gráfico.</p>
             </div>
-        </div>
-        <div class="experiment">
-            <img src="../../assets/exp2.png" alt="Lab 1">
+          </div>
+          <div class="experiment">
+            <img src="{{ url_for('static', filename='assets/exp2.png') }}" alt="Bacterias">
             <div class="overlay">
-            <h3>Bacterias</h3>
-            <p>Las bacterias son microorganismos procariotas que presentan un tamaño de unos pocos micrómetros y diversas formas</p>
+              <h3>Bacterias</h3>
+              <p>Las bacterias son microorganismos procariotas que presentan un tamaño de unos pocos micrómetros y diversas formas.</p>
             </div>
+          </div>
         </div>
-        </div>
-    </section>
+      </section>
 
-    <section class="equipment">
+      <!-- Sección de equipos -->
+      <section class="equipment">
         <h2>EQUIPOS RESERVADOS</h2>
         <div class="equipment-list">
-        <div class="equipment-item">
-            <img src="../../assets/microscopio.png" alt="Microscopio1">
+          <div class="equipment-item">
+            <img src="{{ url_for('static', filename='assets/microscopio.png') }}" alt="Microscopio1">
             <div class="overlay">
-            <h3>Microscopio1 F8BH</h3>
+              <h3>Microscopio1 F8BH</h3>
             </div>
-        </div>
-        <div class="equipment-item">
-            <img src="../../assets/agitador.png" alt="AgitadorMagnético2">
+          </div>
+          <div class="equipment-item">
+            <img src="{{ url_for('static', filename='assets/agitador.png') }}" alt="Agitador Magnético">
             <div class="overlay">
-            <h3>AgitadorMagnético MS-PA</h3>
+              <h3>Agitador Magnético MS-PA</h3>
             </div>
+          </div>
         </div>
-        </div>
-    </section>
+      </section>
     </div>
   </div>
 </body>

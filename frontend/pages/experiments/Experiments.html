@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Experiment Planner - BioLabHub</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='experiments/Experiments.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="logo-container">
+      <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
+    </div>
+    <div class="user-avatar">
+      <span>👤 {{ session['nombre'] if 'nombre' in session else 'Invitado' }}</span>
+      <a href="{{ url_for('login_bp.logout') }}" class="logout-btn">Cerrar sesión</a>
+    </div>
+  </nav>
+
+  <div class="content">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <nav>
+        <a href="{{ url_for('home') }}">Inicio</a>
+        <a href="{{ url_for('experiments_bp.experiments') }}" class="active">Experiment Planner</a>
+        <a href="{{ url_for('equipment') }}">Equipos</a>
+        <a href="{{ url_for('reagents') }}">Reactivos</a>
+      </nav>
+    </div>
+
+    <!-- Main content -->
+    <div class="main">
+      <section class="planner">
+        <h1>ExperimentPlanner – Planificación de Experimentos</h1>
+
+        {% with mensajes = get_flashed_messages(with_categories=true) %}
+          {% if mensajes %}
+            {% for categoria, mensaje in mensajes %}
+              <div class="alerta {{ categoria }}">{{ mensaje }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Formulario de creación -->
+        <form class="form-nuevo" method="POST" action="{{ url_for('experiments_bp.add_experiment') }}" enctype="multipart/form-data">
+          <h2>🧪 Nuevo Experimento</h2>
+          <div class="form-row">
+            <label for="titulo">Título:</label>
+            <input type="text" name="titulo" id="titulo" required>
+          </div>
+
+          <div class="form-row">
+            <label for="descripcion">Descripción:</label>
+            <textarea name="descripcion" id="descripcion" required></textarea>
+          </div>
+
+          <div class="form-row">
+            <label for="fecha_inicio">Fecha inicio:</label>
+            <input type="date" name="fecha_inicio" id="fecha_inicio">
+          </div>
+
+          <div class="form-row">
+            <label for="fecha_fin">Fecha fin:</label>
+            <input type="date" name="fecha_fin" id="fecha_fin">
+          </div>
+
+          <div class="form-row">
+            <label for="estado">Estado:</label>
+            <select name="estado" id="estado">
+              <option value="Planificado">Planificado</option>
+              <option value="En progreso">En progreso</option>
+              <option value="Finalizado">Finalizado</option>
+            </select>
+          </div>
+
+          <!-- Solo visible para admin -->
+          {% if session['rol'] == 'admin' %}
+          <div class="form-row">
+            <label for="responsable">Responsable:</label>
+            <select name="responsable" id="responsable">
+              <option value="">-- Seleccionar responsable --</option>
+              {% for u in usuarios %}
+                <option value="{{ u['id'] }}">{{ u['nombre'] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+
+          <!-- Adjuntar protocolo -->
+          <div class="form-row">
+            <label for="protocolo">Archivo de protocolo:</label>
+            <input type="file" name="protocolo" id="protocolo" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+          </div>
+
+          <button type="submit" class="btn-crear">Crear experimento</button>
+        </form>
+
+        <!-- Tabla de experimentos -->
+        <h2 class="titulo-lista">📋 Experimentos Registrados</h2>
+        {% if experimentos %}
+          <table class="tabla-experimentos">
+            <thead>
+              <tr>
+                <th>Título</th>
+                <th>Descripción</th>
+                <th>Responsable</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+                <th>Estado</th>
+                <th>Protocolo</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for exp in experimentos %}
+              <tr>
+                <td>{{ exp['titulo'] }}</td>
+                <td>{{ exp['descripcion'] }}</td>
+                <td>{{ exp['responsable'] or 'No asignado' }}</td>
+                <td>{{ exp['fecha_inicio'] or '-' }}</td>
+                <td>{{ exp['fecha_fin'] or '-' }}</td>
+                <td>{{ exp['estado'] or '-' }}</td>
+                <td>
+                  {% if exp['protocolo_archivo'] %}
+                    <a href="{{ url_for('experiments_bp.descargar_protocolo', filename=exp['protocolo_archivo']) }}" target="_blank">📄 Descargar</a>
+                  {% else %}
+                    <span class="sin-archivo">Sin archivo</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <form method="GET" action="{{ url_for('experiments_bp.delete_experiment', id=exp['id']) }}" onsubmit="return confirm('¿Eliminar este experimento?');">
+                    <button class="btn-eliminar" type="submit">Eliminar</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p class="sin-experimentos">Aún no hay experimentos registrados.</p>
+        {% endif %}
+
+        <!-- Calendario -->
+        <h2 class="titulo-lista">🗓️ Calendario de Experimentos</h2>
+        <div id="calendar"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- FullCalendar -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const calendarEl = document.getElementById('calendar');
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'es',
+        height: 600,
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,listWeek'
+        },
+        events: "{{ url_for('experiments_bp.experiments_events') }}",
+        eventDisplay: 'block',
+        eventTextColor: '#fff',
+
+        eventDidMount: function(info) {
+          const tooltip = document.createElement('div');
+          tooltip.className = 'tooltip';
+          tooltip.innerHTML = `<b>${info.event.title}</b><br>${info.event.extendedProps.description || ''}`;
+          document.body.appendChild(tooltip);
+
+          info.el.addEventListener('mouseenter', e => {
+            tooltip.style.display = 'block';
+            tooltip.style.left = (e.pageX + 10) + 'px';
+            tooltip.style.top = (e.pageY + 10) + 'px';
+          });
+          info.el.addEventListener('mouseleave', () => tooltip.style.display = 'none');
+        }
+      });
+
+      calendar.render();
+    });
+  </script>
+
+</body>
+</html>

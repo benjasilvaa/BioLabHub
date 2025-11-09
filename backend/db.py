@@ -1,17 +1,21 @@
 import sqlite3
 from sqlite3 import Error
+import os
 from datetime import datetime
 import hashlib
-import os
 
+# Ruta absoluta hacia la base en la raíz del proyecto
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_PATH = os.path.join(BASE_DIR, "biolabhub.db")
 
 def conectar_bd():
     try:
-        conn = sqlite3.connect("biolabhub.db")
+        conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         return conn
     except Error as e:
-        print("error al conectar", e)
+        print("❌ Error al conectar con la base de datos:", e)
+
 
 def crear_bd():
     conn = conectar_bd()
@@ -56,7 +60,7 @@ def crear_bd():
             fecha_ingreso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             estado_logico INTEGER DEFAULT 0,
             dvh INTEGER,
-            FOREING KEY (responsable_id) REFERENCES usuarios(id)
+            FOREIGN KEY (responsable_id) REFERENCES usuarios(id)
         )
         """)
     
@@ -70,7 +74,7 @@ def crear_bd():
             responsable_id INTEGER,
             estado_logico INTEGER DEFAULT 0,
             dvh INTEGER,
-            FOREING KEY (responsable_id) REFERENCES usuarios(id)
+            FOREIGN KEY (responsable_id) REFERENCES usuarios(id)
         )
         """)
     cursor.execute("""
@@ -117,5 +121,49 @@ def recalcular_dvv(tabla):
         cursor.execute("INSERT INTO verificaciones_verticales (tabla, dvv) VALUES (?, ?)", (tabla, suma))
     conexion.commit()
     conexion.close()
+
+def ejecutar_select(query, parametros=()):
+    conn = conectar_bd()
+    cursor = conn.cursor()
+    cursor.execute(query, parametros)
+    filas = cursor.fetchall()
+    conn.close()
+    return filas
+
+
+def ejecutar_insert(query, parametros=()):
+    conn = conectar_bd()
+    cursor = conn.cursor()
+    cursor.execute(query, parametros)
+    conn.commit()
+    last_id = cursor.lastrowid
+    conn.close()
+    return last_id
+
+
+def ejecutar_update(query, parametros=()):
+    conn = conectar_bd()
+    cursor = conn.cursor()
+    cursor.execute(query, parametros)
+    conn.commit()
+    conn.close()
+
+def registrar_auditoria(usuario_id, accion, tabla, registro_id, ip_origen):
+    datos = {
+        "usuario_id": usuario_id,
+        "accion": accion,
+        "tabla_afectada": tabla,
+        "registro_id": registro_id,
+        "fecha": datetime.now(),
+        "ip_origen": ip_origen
+    }
+    dvh = calcular_dvh(datos)
+
+    query = """INSERT INTO audits_logs 
+               (usuario_id, accion, tabla_afectada, registro_id, fecha, ip_origen, dvh)
+               VALUES (?, ?, ?, ?, ?, ?, ?)"""
+
+    ejecutar_insert(query, (usuario_id, accion, tabla, registro_id, datetime.now(), ip_origen, dvh))
+    recalcular_dvv("audits_logs")
 
 

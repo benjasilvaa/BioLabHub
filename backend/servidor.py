@@ -1,0 +1,61 @@
+from flask import Flask, render_template, redirect, url_for, session, flash
+import os
+from db import crear_bd
+from login import login_bp
+from experiments import experiments_bp
+
+# Crear app Flask
+app = Flask(__name__,
+            template_folder="../frontend/pages",
+            static_folder="../frontend/static")
+
+app.secret_key = "clave_super_segura_para_biolabhub"  # Necesaria para sesiones y flashes
+
+# Registrar Blueprints
+app.register_blueprint(login_bp)
+app.register_blueprint(experiments_bp)
+
+
+# 🔧 Ruta raíz → redirige al login si no hay sesión
+@app.route("/")
+def index():
+    if "usuario_id" in session:
+        return redirect(url_for("home"))
+    return redirect(url_for("login_bp.login"))
+
+
+# 🏠 Página principal (Home)
+@app.route("/home")
+def home():
+    if "usuario_id" not in session:
+        flash("Debes iniciar sesión primero.", "error")
+        return redirect(url_for("login_bp.login"))
+    return render_template("home/Home.html")
+
+
+# ⚙️ Rutas base de ejemplo para futuros módulos
+@app.route("/equipment")
+def equipment():
+    if "usuario_id" not in session:
+        flash("Debes iniciar sesión primero.", "error")
+        return redirect(url_for("login_bp.login"))
+    return "<h2>Página de Equipos (en construcción)</h2>"
+
+
+@app.route("/reagents")
+def reagents():
+    if "usuario_id" not in session:
+        flash("Debes iniciar sesión primero.", "error")
+        return redirect(url_for("login_bp.login"))
+    return "<h2>Página de Reactivos (en construcción)</h2>"
+
+
+# 🚀 Inicio del servidor y creación automática de la base de datos
+if __name__ == "__main__":
+    if not os.path.exists(os.path.join(os.path.dirname(__file__), "..", "biolabhub.db")):
+        print("🔧 Base de datos no encontrada. Creándola...")
+        crear_bd()
+    else:
+        print("✅ Base de datos encontrada.")
+
+    app.run(debug=True)
