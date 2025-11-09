@@ -4,6 +4,7 @@ from db import crear_bd
 from login import login_bp
 from experiments import experiments_bp
 from samples import samples_bp
+from equipments import equipments_bp
 
 # Crear app Flask
 app = Flask(__name__,
@@ -16,6 +17,7 @@ app.secret_key = "clave_super_segura_para_biolabhub"  # Necesaria para sesiones 
 app.register_blueprint(login_bp)
 app.register_blueprint(experiments_bp)
 app.register_blueprint(samples_bp)
+app.register_blueprint(equipments_bp)
 
 
 # 🔧 Ruta raíz → redirige al login si no hay sesión

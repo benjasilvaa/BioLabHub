@@ -2,7 +2,7 @@ import sqlite3
 from sqlite3 import Error
 import os
 from datetime import datetime
-import hashlib
+import bcrypt
 
 # Ruta absoluta hacia la base en la raíz del proyecto
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -106,6 +106,32 @@ def crear_bd():
             dvh INTEGER
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS reservas_equipos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            equipo TEXT NOT NULL,
+            usuario_id INTEGER,
+            fecha_inicio DATETIME NOT NULL,
+            fecha_fin DATETIME NOT NULL,
+            estado TEXT DEFAULT 'Activa',
+            observaciones TEXT,
+            estado_logico INTEGER DEFAULT 0,
+            dvh INTEGER,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS equipos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL UNIQUE,
+            categoria TEXT,
+            ubicacion TEXT,
+            estado TEXT DEFAULT 'Disponible',
+            estado_logico INTEGER DEFAULT 0,
+            dvh INTEGER
+        )
+    """)
+
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS verificaciones_verticales (
@@ -136,9 +162,19 @@ def crear_bd():
     asegurar_columna("usuarios", "ultima_sesion", "TIMESTAMP")
     asegurar_columna("muestras", "fecha_ingreso", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
 
-    # ===============================
-    # 📦 LABORATORIOS BASE (si está vacío)
-    # ===============================
+  
+    cursor.execute("SELECT COUNT(*) FROM equipos")
+    if cursor.fetchone()[0] == 0:
+        equipos_iniciales = [
+            ("Centrífuga Eppendorf 5424R", "Centrífuga", "Laboratorio Químico", "Disponible"),
+            ("Microscopio Leica DM750", "Microscopio", "Laboratorio de Microbiología", "Disponible"),
+            ("Espectrofotómetro NanoDrop 2000", "Medición", "Laboratorio de Biología Molecular", "Disponible"),
+            ("Cabina de Seguridad Biológica", "Seguridad", "Laboratorio de Biología Molecular", "Disponible"),
+            ("Freezer -80°C", "Almacenamiento", "Cámara Fría", "Disponible"),
+        ]
+        cursor.executemany("INSERT INTO equipos (nombre, categoria, ubicacion, estado) VALUES (?, ?, ?, ?)", equipos_iniciales)
+        print("✅ Equipos base insertados.")
+
     cursor.execute("SELECT COUNT(*) FROM laboratorios")
     if cursor.fetchone()[0] == 0:
         labs_iniciales = [
@@ -152,6 +188,31 @@ def crear_bd():
         ]
         cursor.executemany("INSERT INTO laboratorios (nombre, ubicacion) VALUES (?, ?)", labs_iniciales)
         print("✅ Laboratorios base insertados.")
+
+        # --- Crear usuario administrador por defecto ---
+    cursor.execute("SELECT * FROM usuarios WHERE rol = 'admin'")
+    admin_existente = cursor.fetchone()
+
+    if not admin_existente:
+        contraseña = b"admin123"  # bcrypt trabaja con bytes
+        hash_admin = bcrypt.hashpw(contraseña, bcrypt.gensalt()).decode("utf-8")
+        datos_admin = {
+            "nombre": "Administrador",
+            "email": "admin@biolabhub.com",
+            "contraseña_hash": hash_admin,
+            "rol": "admin",
+            "estado_logico": 0
+        }
+        dvh_admin = calcular_dvh(datos_admin)
+        cursor.execute("""
+            INSERT INTO usuarios (nombre, email, contraseña_hash, rol, estado_logico, dvh)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, ("Administrador", "admin@biolabhub.com", hash_admin, "admin", 0, dvh_admin))
+        conn.commit()
+        print("👑 Usuario admin creado: admin@biolabhub.com / admin123")
+    else:
+        print("✅ Usuario admin ya existe.")
+    
 
     conn.commit()
     conn.close()

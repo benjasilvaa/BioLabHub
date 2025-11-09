@@ -1,0 +1,225 @@
+/* ======== GENERAL ======== */
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background-color: #f4f7fa;
+}
+
+/* ======== NAVBAR ======== */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #0d47a1;
+  color: white;
+  padding: 0.8rem 2rem;
+}
+
+.logo-container img {
+  height: 40px;
+}
+
+.user-avatar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logout-btn {
+  color: white;
+  text-decoration: none;
+  background-color: #1565c0;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.logout-btn:hover {
+  background-color: #1e88e5;
+}
+
+/* ======== LAYOUT ======== */
+.content {
+  display: flex;
+  height: calc(100vh - 70px);
+}
+
+.sidebar {
+  background-color: #1565c0;
+  color: white;
+  width: 220px;
+  padding-top: 1rem;
+}
+
+.sidebar a {
+  display: block;
+  color: white;
+  text-decoration: none;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background-color 0.2s ease;
+}
+
+.sidebar a:hover,
+.sidebar a.active {
+  background-color: #1976d2;
+}
+
+.main {
+  flex-grow: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+/* ======== TITULOS ======== */
+.main h1 {
+  color: #0d47a1;
+  margin-bottom: 1.5rem;
+}
+
+.main h2 {
+  color: #0d47a1;
+  margin-top: 2rem;
+}
+
+/* ======== FORMULARIO ======== */
+.form-nueva {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+  width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.form-nueva input,
+.form-nueva textarea,
+.form-nueva select {
+  padding: 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.form-nueva textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.form-nueva button {
+  background-color: #0d47a1;
+  color: white;
+  border: none;
+  padding: 0.7rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-weight: 500;
+}
+
+.form-nueva button:hover {
+  background-color: #1565c0;
+}
+
+/* ======== TABLA DE RESERVAS ======== */
+.tabla-reservas {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tabla-reservas th,
+.tabla-reservas td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+.tabla-reservas th {
+  background-color: #0d47a1;
+  color: white;
+  font-weight: 600;
+}
+
+.tabla-reservas tr:hover {
+  background-color: #f0f4ff;
+}
+
+/* ======== BOTONES ======== */
+.btn-eliminar {
+  background-color: #e53935;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-eliminar:hover {
+  background-color: #c62828;
+}
+
+/* ======== CALENDARIO ======== */
+#calendar {
+  background-color: white;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 1.5rem;
+}
+
+.fc .fc-toolbar-title {
+  color: #0d47a1;
+  font-weight: 600;
+}
+
+.fc .fc-button-primary {
+  background-color: #1565c0;
+  border: none;
+}
+
+.fc .fc-button-primary:hover {
+  background-color: #1e88e5;
+}
+
+/* ======== ALERTAS Y MENSAJES ======== */
+.alerta {
+  padding: 0.8rem 1.2rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.alerta.success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.alerta.error {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+/* ======== RESPONSIVE ======== */
+@media (max-width: 768px) {
+  .content {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+  }
+
+  .form-nueva {
+    width: 100%;
+  }
+}
