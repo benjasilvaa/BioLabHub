@@ -40,12 +40,15 @@
 
 .sidebar {
   width: 220px;
-  background-color: #215a68;
+  background: linear-gradient(180deg, #215a68 0%, #1b4c58 100%);
   color: #fff;
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  min-height: calc(100vh - 70px); 
+  padding: 16px 12px;
+  min-height: calc(100vh - 70px);
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.12);
 }
 
 .logo {
@@ -62,16 +65,31 @@
   object-fit: contain;
 }
 
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .sidebar nav a {
+  display: flex;
+  align-items: center;
   color: #fff;
   text-decoration: none;
-  margin: 10px 0;
-  display: block;
-  font-weight: bold;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
 .sidebar nav a:hover {
-  text-decoration: underline;
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateX(2px);
+}
+
+.sidebar nav a.active {
+  background-color: rgba(255, 255, 255, 0.16);
 }
 
 .main {

@@ -1,6 +1,6 @@
 body {
   margin: 0;
-  font-family: 'Segoe UI', Arial, sans-serif;
+  font-family: Arial, sans-serif;
   background-color: #f4f7fa;
 }
 
@@ -9,13 +9,19 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #1a237e;
+  background-color: #22a6b3;
   color: white;
-  padding: 0.8rem 2rem;
+  padding: 10px 25px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 10;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .logo-container img {
-  height: 40px;
+  height: 60px;
 }
 
 .user-avatar {
@@ -40,25 +46,46 @@ body {
 .content {
   display: flex;
   height: calc(100vh - 70px);
+  margin-top: 70px;
 }
 
 .sidebar {
-  background-color: #283593;
-  color: white;
   width: 220px;
-  padding-top: 1rem;
+  background: linear-gradient(180deg, #215a68 0%, #1b4c58 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.12);
+}
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .sidebar a {
-  display: block;
-  color: white;
+  display: flex;
+  align-items: center;
+  color: #fff;
   text-decoration: none;
-  padding: 0.8rem 1rem;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
-.sidebar a:hover, .sidebar a.active {
-  background-color: #3949ab;
+.sidebar a:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateX(2px);
+}
+
+.sidebar a.active {
+  background-color: rgba(255, 255, 255, 0.16);
 }
 
 /* Main content */
@@ -66,6 +93,11 @@ body {
   flex-grow: 1;
   padding: 2rem;
   overflow-y: auto;
+}
+
+/* Tipografía consistente en negrita donde corresponde */
+.navbar, .sidebar nav a, h1, h2 {
+  font-weight: bold;
 }
 
 /* Formulario */
