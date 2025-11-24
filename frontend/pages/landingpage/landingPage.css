@@ -2,24 +2,32 @@ body {
   margin: 0;
   background-color: #000;
   color: white;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: Arial, sans-serif;
   overflow-x: hidden;
 }
 
 .navbar {
   background-color: #22a6b3;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  position: sticky;
+  padding: 10px 25px;
+  position: fixed;
   top: 0;
+  left: 0;
+  width: 100%;
   z-index: 10;
-  box-shadow: 0 4px 10px #187881(255, 0, 204, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .logo-container img {
-  height: 90px;
+  height: 60px;
   width: auto;
+}
+
+/* Tipografía en negrita para elementos clave */
+.navbar, h1, h2 {
+  font-weight: bold;
 }
 
 .hero {
