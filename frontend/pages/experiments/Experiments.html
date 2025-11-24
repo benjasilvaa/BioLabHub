@@ -76,7 +76,6 @@
             </select>
           </div>
 
-          <!-- Solo visible para admin -->
           {% if session['rol'] == 'admin' %}
           <div class="form-row">
             <label for="responsable">Responsable:</label>
@@ -89,7 +88,6 @@
           </div>
           {% endif %}
 
-          <!-- Adjuntar protocolo -->
           <div class="form-row">
             <label for="protocolo">Archivo de protocolo:</label>
             <input type="file" name="protocolo" id="protocolo" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
@@ -143,6 +141,12 @@
           <p class="sin-experimentos">Aún no hay experimentos registrados.</p>
         {% endif %}
 
+        <!-- =============================== -->
+        <!--    PANEL DE EVENTOS EN TIEMPO REAL  -->
+        <!-- =============================== -->
+        <h2 class="titulo-lista">🔔 Actividad reciente</h2>
+        <div id="eventos" class="eventos-box"></div>
+
         <!-- Calendario -->
         <h2 class="titulo-lista">🗓️ Calendario de Experimentos</h2>
         <div id="calendar"></div>
@@ -186,6 +190,10 @@
       calendar.render();
     });
   </script>
+
+  <!-- Socket.IO -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="/static/socket.js"></script>
 
 </body>
 </html>

@@ -6,12 +6,18 @@ from experiments import experiments_bp
 from samples import samples_bp
 from equipments import equipments_bp
 
+# 🧩 IMPORTANTE → importar SocketIO
+from flask_socketio import SocketIO, emit
+
 # Crear app Flask
 app = Flask(__name__,
             template_folder="../frontend/pages",
             static_folder="../frontend/static")
 
 app.secret_key = "clave_super_segura_para_biolabhub"  # Necesaria para sesiones y flashes
+
+# Inicializar SocketIO con CORS habilitado
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Registrar Blueprints
 app.register_blueprint(login_bp)
@@ -54,6 +60,19 @@ def reagents():
     return "<h2>Página de Reactivos (en construcción)</h2>"
 
 
+# 📡 EVENTOS SOCKET.IO
+
+@socketio.on("connect")
+def handle_connect():
+    print("🟢 Cliente conectado vía WebSocket")
+    emit("server_message", {"msg": "Conectado al WebSocket de BioLabHub!"})
+
+
+@socketio.on("disconnect")
+def handle_disconnect():
+    print("🔴 Cliente desconectado")
+
+
 # 🚀 Inicio del servidor y creación automática de la base de datos
 if __name__ == "__main__":
     if not os.path.exists(os.path.join(os.path.dirname(__file__), "..", "biolabhub.db")):
@@ -62,4 +81,5 @@ if __name__ == "__main__":
     else:
         print("✅ Base de datos encontrada.")
 
-    app.run(debug=True)
+    # Cambiamos app.run → socketio.run
+    socketio.run(app, debug=True)

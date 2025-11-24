@@ -1,8 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, Response, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from datetime import datetime
-import json
-import time
-
+from flask_socketio import emit
 from db import (
     ejecutar_select,
     ejecutar_insert,
@@ -18,7 +16,9 @@ def equipreserve():
         flash("⚠️ Debes iniciar sesión para acceder.", "error")
         return redirect(url_for("login_bp.login"))
 
-    equipos = ejecutar_select("SELECT nombre FROM equipos WHERE estado_logico = 0 ORDER BY nombre ASC")
+    equipos = ejecutar_select(
+        "SELECT nombre FROM equipos WHERE estado_logico = 0 ORDER BY nombre ASC"
+    )
     return render_template("equipreserve/EquipReserve.html", equipos=equipos)
 
 
@@ -68,15 +68,13 @@ def add_reserva():
     fecha_fin = request.form.get("fecha_fin")
     usuario_id = session.get("usuario_id")
 
-    # Validación simple
     if not equipo or not fecha_inicio or not fecha_fin:
         flash("❌ Todos los campos son obligatorios.", "error")
         return redirect(url_for("equipments_bp.equipreserve"))
 
-    # Verificar conflicto de horario
     conflicto = ejecutar_select("""
         SELECT * FROM reservas_equipos
-        WHERE estado_logico = 0 AND equipo = ? 
+        WHERE estado_logico = 0 AND equipo = ?
         AND (
             (? BETWEEN fecha_inicio AND fecha_fin) OR
             (? BETWEEN fecha_inicio AND fecha_fin)
@@ -84,13 +82,23 @@ def add_reserva():
     """, (equipo, fecha_inicio, fecha_fin))
 
     if conflicto:
-        flash(f"⚠️ El equipo '{equipo}' ya está reservado en ese rango de fechas.", "error")
+        flash(
+            f"⚠️ El equipo '{equipo}' ya está reservado en ese rango de fechas.",
+            "error",
+        )
         return redirect(url_for("equipments_bp.equipreserve"))
 
     ejecutar_insert("""
         INSERT INTO reservas_equipos (equipo, fecha_inicio, fecha_fin, usuario_id, estado)
         VALUES (?, ?, ?, ?, 'Reservado')
     """, (equipo, fecha_inicio, fecha_fin, usuario_id))
+
+    # 🔥 Notificar a todos los clientes conectados
+    from servidor import socketio
+    socketio.emit(
+        "refresh_calendar",
+        {"msg": f"Nueva reserva para {equipo}"}
+    )
 
     flash(f"✅ Reserva creada correctamente para {equipo}.", "success")
     return redirect(url_for("equipments_bp.equipreserve"))
@@ -104,16 +112,10 @@ def delete_reserva(id):
         return redirect(url_for("equipments_bp.equipreserve"))
 
     ejecutar_update("UPDATE reservas_equipos SET estado_logico = 1 WHERE id = ?", (id,))
+
+    # 🔥 Aviso por WebSocket
+    from servidor import socketio
+    socketio.emit("refresh_calendar", {"msg": "Reserva eliminada"})
+
     flash("🗑️ Reserva eliminada correctamente.", "success")
     return redirect(url_for("equipments_bp.equipreserve"))
-
-
-# --- Stream de eventos en tiempo real ---
-@equipments_bp.route("/equipreserve/stream")
-def equipreserve_stream():
-    def event_stream():
-        while True:
-            time.sleep(5)
-            yield f"data: Actualización de reservas a las {datetime.now().strftime('%H:%M:%S')}\n\n"
-
-    return Response(event_stream(), mimetype="text/event-stream")

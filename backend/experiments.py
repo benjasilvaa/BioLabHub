@@ -1,152 +1,165 @@
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify
 import os
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify, send_from_directory
-from db import ejecutar_select, ejecutar_insert, ejecutar_update, registrar_auditoria, recalcular_dvv
-from datetime import datetime, timedelta
-import random
+import sqlite3
+from werkzeug.utils import secure_filename
 
-# Ruta a las plantillas de experimentos
-template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend", "pages", "experiments")
-upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "uploads", "protocolos")
-os.makedirs(upload_dir, exist_ok=True)
+experiments_bp = Blueprint("experiments_bp", __name__, url_prefix="/experiments")
 
-# Blueprint de Experiment Planner
-experiments_bp = Blueprint("experiments_bp", __name__, template_folder=template_dir, static_folder=template_dir)
+# Ruta donde se guardan archivos
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "..", "uploads", "protocolos")
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
-# 📋 Mostrar experimentos
-@experiments_bp.route("/experiments", methods=["GET"])
+# ---------------------------
+#  FUNCIONES DE BASE DE DATOS
+# ---------------------------
+
+def conectar_bd():
+    ruta = os.path.join(BASE_DIR, "..", "biolabhub.db")
+    conn = sqlite3.connect(ruta)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+# ---------------------------
+#  LISTAR EXPERIMENTOS
+# ---------------------------
+
+@experiments_bp.route("/")
 def experiments():
     if "usuario_id" not in session:
-        flash("Debes iniciar sesión primero.", "error")
+        flash("Debes iniciar sesión.", "error")
         return redirect(url_for("login_bp.login"))
 
-    query = """
-        SELECT e.id, e.titulo, e.descripcion, e.fecha_inicio, e.fecha_fin,
-               e.estado, u.nombre AS responsable, e.protocolo_archivo
+    conn = conectar_bd()
+    cur = conn.cursor()
+
+    # Experimentos
+    cur.execute("""
+        SELECT e.id, e.titulo, e.descripcion, e.fecha_inicio, e.fecha_fin, 
+               e.estado, e.protocolo_archivo, u.nombre AS responsable
         FROM experimentos e
         LEFT JOIN usuarios u ON e.responsable_id = u.id
-        WHERE e.estado_logico = 0
-        ORDER BY e.fecha_inicio DESC
-    """
-    experimentos = ejecutar_select(query)
-    return render_template("experiments/experiments.html", experimentos=experimentos, usuario=session["nombre"])
+        ORDER BY e.id DESC
+    """)
+    experimentos = cur.fetchall()
+
+    # Usuarios (para admin)
+    cur.execute("SELECT id, nombre FROM usuarios")
+    usuarios = cur.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "experiments/Experiments.html",
+        experimentos=experimentos,
+        usuarios=usuarios
+    )
 
 
-# 🧪 Agregar nuevo experimento (con protocolo opcional)
-@experiments_bp.route("/experiments/add", methods=["POST"])
+# ---------------------------
+#  AGREGAR EXPERIMENTO
+# ---------------------------
+
+@experiments_bp.route("/add", methods=["POST"])
 def add_experiment():
-    if "usuario_id" not in session:
-        flash("Inicia sesión primero.", "error")
-        return redirect(url_for("login_bp.login"))
-
-    titulo = request.form.get("titulo")
-    descripcion = request.form.get("descripcion")
-    fecha_inicio = request.form.get("fecha_inicio")
-    fecha_fin = request.form.get("fecha_fin")
-    estado = request.form.get("estado", "Planificado")
-    responsable_id = session["usuario_id"]
-
-    if not titulo or not descripcion:
-        flash("Por favor, completa todos los campos obligatorios.", "error")
-        return redirect(url_for("experiments_bp.experiments"))
-
-    # Manejo del archivo (protocolo)
-    protocolo_filename = None
-    if "protocolo" in request.files:
-        file = request.files["protocolo"]
-        if file and file.filename != "":
-            nombre_archivo = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
-            file.save(os.path.join(upload_dir, nombre_archivo))
-            protocolo_filename = nombre_archivo
-
-    query = """
-        INSERT INTO experimentos (titulo, descripcion, responsable_id, fecha_inicio, fecha_fin, estado, estado_logico, protocolo_archivo)
-        VALUES (?, ?, ?, ?, ?, ?, 0, ?)
-    """
-    new_id = ejecutar_insert(query, (titulo, descripcion, responsable_id, fecha_inicio, fecha_fin, estado, protocolo_filename))
-
-    registrar_auditoria(session["usuario_id"], "CREAR EXPERIMENTO", "experimentos", new_id, request.remote_addr)
-    recalcular_dvv("experimentos")
-
-    flash("✅ Experimento agregado correctamente.", "success")
-    return redirect(url_for("experiments_bp.experiments"))
-
-
-# 🗑️ Eliminar experimento
-@experiments_bp.route("/experiments/delete/<int:id>")
-def delete_experiment(id):
-    ejecutar_update("UPDATE experimentos SET estado_logico = 1 WHERE id = ?", (id,))
-    registrar_auditoria(session.get("usuario_id"), "ELIMINAR EXPERIMENTO", "experimentos", id, request.remote_addr)
-    recalcular_dvv("experimentos")
-
-    flash("🗑️ Experimento eliminado correctamente.", "success")
-    return redirect(url_for("experiments_bp.experiments"))
-
-
-# ✏️ Actualizar experimento
-@experiments_bp.route("/experiments/update/<int:id>", methods=["POST"])
-def update_experiment(id):
     titulo = request.form.get("titulo")
     descripcion = request.form.get("descripcion")
     fecha_inicio = request.form.get("fecha_inicio")
     fecha_fin = request.form.get("fecha_fin")
     estado = request.form.get("estado")
+    responsable = request.form.get("responsable") or None
 
-    query = """
-        UPDATE experimentos
-        SET titulo = ?, descripcion = ?, fecha_inicio = ?, fecha_fin = ?, estado = ?
-        WHERE id = ?
-    """
-    ejecutar_update(query, (titulo, descripcion, fecha_inicio, fecha_fin, estado, id))
+    archivo = request.files.get("protocolo")
+    archivo_nombre = None
 
-    registrar_auditoria(session.get("usuario_id"), "ACTUALIZAR EXPERIMENTO", "experimentos", id, request.remote_addr)
-    recalcular_dvv("experimentos")
+    # Guardar archivo si existe
+    if archivo and archivo.filename:
+        archivo_nombre = secure_filename(archivo.filename)
+        archivo.save(os.path.join(UPLOAD_FOLDER, archivo_nombre))
 
-    flash("✏️ Experimento actualizado correctamente.", "success")
+    conn = conectar_bd()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO experimentos 
+        (titulo, descripcion, fecha_inicio, fecha_fin, estado, responsable_id, protocolo_archivo)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (titulo, descripcion, fecha_inicio, fecha_fin, estado, responsable, archivo_nombre))
+    conn.commit()
+
+    nuevo_id = cur.lastrowid
+    conn.close()
+
+    # 🎯 WebSocket: IMPORT LOCAL para evitar import circular
+    from servidor import socketio
+    socketio.emit("experiment_event", f"🧪 Nuevo experimento creado: {titulo}")
+
+    flash("Experimento agregado correctamente.", "success")
     return redirect(url_for("experiments_bp.experiments"))
 
 
-# 📎 Descargar protocolo
-@experiments_bp.route("/experiments/protocolo/<filename>")
+# ---------------------------
+#  ELIMINAR EXPERIMENTO
+# ---------------------------
+
+@experiments_bp.route("/delete/<int:id>")
+def delete_experiment(id):
+    conn = conectar_bd()
+    cur = conn.cursor()
+
+    # Obtener nombre para el evento
+    cur.execute("SELECT titulo FROM experimentos WHERE id = ?", (id,))
+    row = cur.fetchone()
+    titulo = row["titulo"] if row else "(desconocido)"
+
+    # Eliminar experimento
+    cur.execute("DELETE FROM experimentos WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+
+    # 🎯 WebSocket (import local)
+    from servidor import socketio
+    socketio.emit("experiment_event", f"🗑️ Experimento eliminado: {titulo}")
+
+    flash("Experimento eliminado correctamente.", "success")
+    return redirect(url_for("experiments_bp.experiments"))
+
+
+# ---------------------------
+#  DESCARGAR PROTOCOLO
+# ---------------------------
+
+@experiments_bp.route("/protocolo/<path:filename>")
 def descargar_protocolo(filename):
-    try:
-        return send_from_directory(upload_dir, filename, as_attachment=True)
-    except FileNotFoundError:
-        flash("El archivo no existe o fue eliminado.", "error")
-        return redirect(url_for("experiments_bp.experiments"))
+    return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
 
-# 📅 Endpoint JSON para el calendario
+# ---------------------------
+#  EVENTOS PARA FULLCALENDAR
+# ---------------------------
+
 @experiments_bp.route("/events")
 def experiments_events():
-    experimentos = ejecutar_select("SELECT * FROM experimentos WHERE estado_logico = 0")
+    conn = conectar_bd()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, titulo, descripcion, fecha_inicio, fecha_fin
+        FROM experimentos
+    """)
+    rows = cur.fetchall()
+    conn.close()
+
     eventos = []
-
-    colores = [
-        "#007BFF", "#28A745", "#FFC107", "#DC3545", "#6F42C1", "#20C997",
-        "#FD7E14", "#6610F2", "#E83E8C", "#17A2B8"
-    ]
-
-    for exp in experimentos:
-        fecha_inicio = exp["fecha_inicio"]
-        fecha_fin = exp["fecha_fin"]
-
-        if fecha_fin:
-            try:
-                fecha_fin = (datetime.strptime(fecha_fin, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
-            except Exception:
-                pass
-
-        color = random.choice(colores)
-
+    for r in rows:
         eventos.append({
-            "id": exp["id"],
-            "title": exp["titulo"],
-            "start": fecha_inicio,
-            "end": fecha_fin,
-            "description": exp["descripcion"],
-            "color": color,
-            "textColor": "#fff"
+            "id": r["id"],
+            "title": r["titulo"],
+            "start": r["fecha_inicio"],
+            "end": r["fecha_fin"],
+            "description": r["descripcion"]
         })
 
     return jsonify(eventos)

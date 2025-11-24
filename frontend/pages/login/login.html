@@ -5,6 +5,8 @@
   <title>Iniciar Sesión</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='login/login.css') }}">
 </head>
+
+
 <body>
   <div class="login-container">
     <h2>Iniciar Sesión</h2>
@@ -33,5 +35,7 @@
   </div>
 
   <script src="{{ url_for('static', filename='login/login.js') }}"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="/static/socket.js"></script>
 </body>
 </html>

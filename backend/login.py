@@ -19,6 +19,7 @@ def login():
         email = request.form["email"].strip()
         contraseña = request.form["contraseña"].strip()
 
+        # Buscar usuario activo (estado_logico = 0)
         query = "SELECT * FROM usuarios WHERE email = ? AND estado_logico = 0"
         usuarios = ejecutar_select(query, (email,))
 
@@ -28,18 +29,29 @@ def login():
 
         usuario = usuarios[0]
 
-        if bcrypt.checkpw(contraseña.encode("utf-8"), usuario["contraseña_hash"].encode("utf-8")):
+        # ===============================
+        #   VERIFICACIÓN CON BCRYPT
+        # ===============================
+        hash_bd = usuario["contraseña_hash"]
+
+        if bcrypt.checkpw(contraseña.encode("utf-8"), hash_bd.encode("utf-8")):
+            # LOGIN CORRECTO
             session["usuario_id"] = usuario["id"]
             session["nombre"] = usuario["nombre"]
             session["rol"] = usuario["rol"]
 
-            ejecutar_update("UPDATE usuarios SET ultima_sesion = ? WHERE id = ?", (datetime.now(), usuario["id"]))
+            ejecutar_update(
+                "UPDATE usuarios SET ultima_sesion = ? WHERE id = ?",
+                (datetime.now(), usuario["id"])
+            )
+
             registrar_auditoria(usuario["id"], "LOGIN EXITOSO", "usuarios", usuario["id"], request.remote_addr)
             recalcular_dvv("usuarios")
 
             flash(f"Bienvenido {usuario['nombre']} 👋", "success")
             return redirect(url_for("home"))
         else:
+            # LOGIN FALLIDO
             registrar_auditoria(None, "LOGIN FALLIDO", "usuarios", 0, request.remote_addr)
             flash("Contraseña incorrecta.", "error")
 
@@ -57,21 +69,27 @@ def register():
         contraseña = request.form["contraseña"].strip()
         rol = "usuario"
 
-        # Verificar si ya existe el correo
+        # Verificar email duplicado
         existe = ejecutar_select("SELECT * FROM usuarios WHERE email = ?", (email,))
         if existe:
             flash("Este email ya está registrado.", "error")
             return render_template("register.html")
 
-        # Crear hash seguro de la contraseña
-        hash_contraseña = bcrypt.hashpw(contraseña.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        # ===============================
+        #     HASH IRREVERSIBLE BCRYPT
+        # ===============================
+        contraseña_hash = bcrypt.hashpw(
+            contraseña.encode("utf-8"),
+            bcrypt.gensalt()
+        ).decode("utf-8")
 
-        # Insertar nuevo usuario
-        query = """INSERT INTO usuarios (nombre, email, contraseña_hash, rol, estado_logico)
-                   VALUES (?, ?, ?, ?, 0)"""
-        nuevo_id = ejecutar_insert(query, (nombre, email, hash_contraseña, rol))
+        # Guardar usuario
+        query = """
+            INSERT INTO usuarios (nombre, email, contraseña_hash, rol, estado_logico)
+            VALUES (?, ?, ?, ?, 0)
+        """
+        nuevo_id = ejecutar_insert(query, (nombre, email, contraseña_hash, rol))
 
-        # Auditoría
         registrar_auditoria(nuevo_id, "USUARIO REGISTRADO", "usuarios", nuevo_id, request.remote_addr)
         recalcular_dvv("usuarios")
 
@@ -91,4 +109,5 @@ def logout():
         registrar_auditoria(usuario_id, "LOGOUT", "usuarios", usuario_id, request.remote_addr)
         session.clear()
         flash("Sesión cerrada correctamente.", "success")
+
     return redirect(url_for("login_bp.login"))

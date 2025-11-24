@@ -9,19 +9,17 @@
 </head>
 
 <body>
-  <!-- Navbar -->
   <nav class="navbar">
     <div class="logo-container">
-      <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
+      <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}">
     </div>
     <div class="user-avatar">
-      <span>👤 {{ session['nombre'] if 'nombre' in session else 'Invitado' }}</span>
+      <span>👤 {{ session['nombre'] }}</span>
       <a href="{{ url_for('login_bp.logout') }}" class="logout-btn">Cerrar sesión</a>
     </div>
   </nav>
 
   <div class="content">
-    <!-- Sidebar -->
     <div class="sidebar">
       <nav>
         <a href="{{ url_for('home') }}">Inicio</a>
@@ -31,11 +29,9 @@
       </nav>
     </div>
 
-    <!-- Main content -->
     <div class="main">
       <h1>🧰 EquipReserve – Reservas de Equipos</h1>
 
-      <!-- Mensajes flash -->
       {% with mensajes = get_flashed_messages(with_categories=true) %}
         {% if mensajes %}
           {% for categoria, mensaje in mensajes %}
@@ -44,52 +40,40 @@
         {% endif %}
       {% endwith %}
 
-      <!-- Formulario nueva reserva -->
       <form class="form-nuevo" method="POST" action="{{ url_for('equipments_bp.add_reserva') }}">
         <h2>➕ Nueva Reserva</h2>
-        <div class="form-row">
-          <label for="equipo">Equipo:</label>
-          <select name="equipo" id="equipo" required>
-            <option value="">-- Selecciona un equipo --</option>
-            {% for e in equipos %}
-              <option value="{{ e['nombre'] }}">{{ e['nombre'] }}</option>
-            {% endfor %}
-          </select>
-        </div>
 
-        <div class="form-row">
-          <label for="fecha_inicio">Fecha inicio:</label>
-          <input type="datetime-local" name="fecha_inicio" id="fecha_inicio" required>
-        </div>
+        <label>Equipo:</label>
+        <select name="equipo" required>
+          <option value="">-- Selecciona un equipo --</option>
+          {% for e in equipos %}
+            <option value="{{ e['nombre'] }}">{{ e['nombre'] }}</option>
+          {% endfor %}
+        </select>
 
-        <div class="form-row">
-          <label for="fecha_fin">Fecha fin:</label>
-          <input type="datetime-local" name="fecha_fin" id="fecha_fin" required>
-        </div>
+        <label>Inicio:</label>
+        <input type="datetime-local" name="fecha_inicio" required>
 
-        <button type="submit" class="btn-crear">Reservar equipo</button>
+        <label>Fin:</label>
+        <input type="datetime-local" name="fecha_fin" required>
+
+        <button type="submit">Reservar equipo</button>
       </form>
 
-      <!-- Calendario -->
-      <h2 class="titulo-lista">🗓️ Calendario de Reservas</h2>
+      <h2>🗓️ Calendario</h2>
       <div id="calendar"></div>
 
-      <!-- Solo admin ve las acciones -->
-      {% if session['rol'] == 'admin' %}
-      <p class="admin-info">⚙️ Eres administrador: puedes eliminar reservas desde la base de datos o interfaz.</p>
-      {% endif %}
-
-      <!-- Eventos en tiempo real -->
       <div id="eventos" class="eventos"></div>
     </div>
   </div>
 
-  <!-- FullCalendar -->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const calendarEl = document.getElementById('calendar');
-      const calendar = new FullCalendar.Calendar(calendarEl, {
+
+      window.calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         locale: 'es',
         height: 650,
@@ -98,36 +82,23 @@
           center: 'title',
           right: 'dayGridMonth,timeGridWeek,listWeek'
         },
-        events: "{{ url_for('equipments_bp.equipreserve_events') }}",
-        eventDisplay: 'block',
-        eventTextColor: '#fff',
-
-        eventDidMount: function(info) {
-          const tooltip = document.createElement('div');
-          tooltip.className = 'tooltip';
-          tooltip.innerHTML = `<b>${info.event.title}</b><br>${info.event.start.toLocaleString()} - ${info.event.end.toLocaleString()}`;
-          document.body.appendChild(tooltip);
-
-          info.el.addEventListener('mouseenter', e => {
-            tooltip.style.display = 'block';
-            tooltip.style.left = (e.pageX + 10) + 'px';
-            tooltip.style.top = (e.pageY + 10) + 'px';
-          });
-          info.el.addEventListener('mouseleave', () => tooltip.style.display = 'none');
-        }
+        events: "{{ url_for('equipments_bp.equipreserve_events') }}"
       });
 
-      calendar.render();
+      window.calendar.render();
     });
-
-    // --- Stream de actualizaciones ---
-    const eventos = document.getElementById("eventos");
-    const source = new EventSource("{{ url_for('equipments_bp.equipreserve_stream') }}");
-    source.onmessage = function(event) {
-      const p = document.createElement("p");
-      p.textContent = "🔔 " + event.data;
-      eventos.prepend(p);
-    };
   </script>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="/static/socket.js"></script>
+
+  <script>
+    // 🔥 Cuando el servidor avisa que algo cambió → recargar eventos
+    socket.on("refresh_calendar", (data) => {
+      console.log("🔄 Actualizando calendario:", data.msg);
+      window.calendar.refetchEvents();
+    });
+  </script>
+
 </body>
 </html>

@@ -109,18 +109,8 @@
     </div>
   </div>
 
-  <!-- Script SSE -->
-  <script>
-    const eventos = document.getElementById("eventos");
-    const source = new EventSource("{{ url_for('samples_bp.samples_stream') }}");
-    source.onmessage = function(event) {
-      const p = document.createElement("p");
-      p.textContent = "🔔 " + event.data;
-      p.classList.add("fade");
-      eventos.prepend(p);
-      // Mantiene solo los últimos 15 eventos
-      if (eventos.childElementCount > 15) eventos.removeChild(eventos.lastChild);
-    };
-  </script>
+  <!-- SOCKET.IO -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="/static/socket.js"></script>
 </body>
 </html>
