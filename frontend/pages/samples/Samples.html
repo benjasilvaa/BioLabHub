@@ -24,8 +24,8 @@
     <!-- Sidebar -->
     <div class="sidebar">
       <nav>
-        <a href="{{ url_for('home') }}">Inicio</a>
-        <a href="{{ url_for('samples_bp.samples') }}">SampleTrack</a>
+        <a href="{{ url_for('home_bp.home') }}">Inicio</a>
+        <a href="{{ url_for('samples_bp.samples') }}" class="active">SampleTrack</a>
         <a href="{{ url_for('experiments_bp.experiments') }}">Experiment Planner</a>
         <a href="{{ url_for('reagents') }}">ReagentVault</a>
         <a href="{{ url_for('equipments_bp.equipreserve') }}">EquipReserve</a>

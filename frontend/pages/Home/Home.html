@@ -20,9 +20,10 @@
   </nav>
 
   <div class="content">
+    <!-- Sidebar de navegación -->
     <div class="sidebar">
       <nav>
-        <a href="{{ url_for('home') }}">Inicio</a>
+        <a href="{{ url_for('home_bp.home') }}">Inicio</a>
         <a href="{{ url_for('samples_bp.samples') }}">SampleTrack</a>
         <a href="{{ url_for('experiments_bp.experiments') }}">Experiment Planner</a>
         <a href="{{ url_for('reagents') }}">ReagentVault</a>
@@ -39,43 +40,54 @@
       <section class="experiments">
         <h2>TUS EXPERIMENTOS</h2>
         <div class="experiment-list">
-          <div class="experiment">
-            <img src="{{ url_for('static', filename='assets/lab1.png') }}" alt="Exp. Caseros">
-            <div class="overlay">
-              <h3>Exp. Caseros</h3>
-              <p>Lorem ipsum es el texto que se usa habitualmente en diseño gráfico.</p>
+
+          {% if experimentos %}
+            {% for exp in experimentos %}
+            <div class="experiment">
+              <img src="{{ url_for('static', filename='assets/lab1.png') }}" alt="Experimento">
+              <div class="overlay">
+                <h3>{{ exp["titulo"] }}</h3>
+                <p>{{ exp["descripcion"][:120] }}...</p>
+                <p><strong>Inicio:</strong> {{ exp["fecha_inicio"] }}</p>
+                <p><strong>Estado:</strong> {{ exp["estado"] }}</p>
+              </div>
             </div>
-          </div>
-          <div class="experiment">
-            <img src="{{ url_for('static', filename='assets/exp2.png') }}" alt="Bacterias">
-            <div class="overlay">
-              <h3>Bacterias</h3>
-              <p>Las bacterias son microorganismos procariotas que presentan un tamaño de unos pocos micrómetros y diversas formas.</p>
-            </div>
-          </div>
+            {% endfor %}
+          {% else %}
+            <p>No tienes experimentos registrados.</p>
+          {% endif %}
+
         </div>
       </section>
 
       <section class="equipment">
         <h2>EQUIPOS RESERVADOS</h2>
         <div class="equipment-list">
-          <div class="equipment-item">
-            <img src="{{ url_for('static', filename='assets/microscopio.png') }}" alt="Microscopio1">
-            <div class="overlay">
-              <h3>Microscopio1 F8BH</h3>
+
+          {% if equipos %}
+            {% for eq in equipos %}
+            <div class="equipment-item">
+              <img src="{{ url_for('static', filename='assets/microscopio.png') }}" alt="Equipo">
+              <div class="overlay">
+                <h3>{{ eq["equipo"] }}</h3>
+                <p><strong>Desde:</strong> {{ eq["fecha_inicio"] }}</p>
+                <p><strong>Hasta:</strong> {{ eq["fecha_fin"] }}</p>
+                <p><strong>Estado:</strong> {{ eq["estado"] }}</p>
+              </div>
             </div>
-          </div>
-          <div class="equipment-item">
-            <img src="{{ url_for('static', filename='assets/agitador.png') }}" alt="Agitador Magnético">
-            <div class="overlay">
-              <h3>Agitador Magnético MS-PA</h3>
-            </div>
-          </div>
+            {% endfor %}
+          {% else %}
+            <p>No tienes equipos reservados.</p>
+          {% endif %}
+
         </div>
       </section>
+
     </div>
   </div>
+
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="/static/socket.js"></script>
+
 </body>
 </html>
