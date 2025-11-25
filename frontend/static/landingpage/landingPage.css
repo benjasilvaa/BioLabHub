@@ -9,7 +9,7 @@ body {
 .navbar {
   background-color: #22a6b3;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   padding: 10px 25px;
   position: fixed;
@@ -32,7 +32,7 @@ body {
 
 .hero {
   position: relative;
-  background-image: url('assets/laboratorio.jpg');
+  background-image: url('../assets/laboratorio.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

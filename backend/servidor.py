@@ -32,12 +32,14 @@ app.register_blueprint(samples_bp)
 app.register_blueprint(equipments_bp)
 
 
-# 🔧 Ruta raíz → redirige al login si no hay sesión
+"""Rutas principales"""
+
+# 🔧 Ruta raíz → muestra la landing si no hay sesión, o va al Home si ya está logueado
 @app.route("/")
 def index():
     if "usuario_id" in session:
-        return redirect(url_for("home"))
-    return redirect(url_for("login_bp.login"))
+        return redirect(url_for("home_bp.home"))
+    return render_template("landingpage/landingpage.html")
 
 
 
