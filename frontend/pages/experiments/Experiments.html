@@ -7,6 +7,65 @@
   <link rel="icon" href="{{ url_for('static', filename='assets/LOGO-SOLO.ico') }}" type="image/png">
   <link rel="stylesheet" href="{{ url_for('static', filename='experiments/Experiments.css') }}">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
+  <style>
+    /* Side modal (panel derecho) */
+    .side-modal {
+      position: fixed;
+      top: 70px; /* debajo del navbar */
+      right: -520px; /* oculto fuera de vista */
+      width: 520px;
+      height: calc(100vh - 90px);
+      background: #fff;
+      box-shadow: -6px 0 30px rgba(0,0,0,0.12);
+      border-left: 1px solid #e6e9ee;
+      transition: right 0.28s ease;
+      z-index: 1001;
+      padding: 1.2rem;
+      overflow-y: auto;
+    }
+    .side-modal.open { right: 0; }
+    .side-modal .close-btn {
+      display: inline-block;
+      background: #e53935;
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      float: right;
+    }
+    .side-modal h3 { margin-top: 0; color: #1a237e; }
+    .side-modal .form-row { margin-bottom: 0.8rem; }
+    .side-modal input, .side-modal textarea, .side-modal select {
+      width: 100%;
+      padding: 0.55rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    .side-modal .btn-save {
+      background-color: #1a237e;
+      color: white;
+      border: none;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 0.6rem;
+      width: 100%;
+    }
+    .edit-actions { display:flex; gap:8px; align-items:center; }
+    /* pequeño overlay para atenuar */
+    .side-overlay {
+      position: fixed;
+      inset: 70px 0 0 0;
+      background: rgba(0,0,0,0.25);
+      display: none;
+      z-index: 1000;
+    }
+    .side-overlay.open { display:block; }
+    /* Acomodo del formulario principal para dejar sitio al modal (opcional) */
+    .main { transition: margin-right 0.28s ease; }
+    .main.shift-right { margin-right: 520px; }
+  </style>
 </head>
 
 <body>
@@ -29,9 +88,7 @@
         <a href="{{ url_for('reagents') }}">ReagentVault</a>
         <a href="{{ url_for('equipments_bp.equipreserve') }}">EquipReserve</a>
         {% if session.get("rol") == "admin" %}
-        <a href="{{ url_for('admin_bp.admin_panel') }}" style="color: #ffcc00; font-weight: bold;">
-          🛠 Panel Admin
-        </a>
+        <a href="{{ url_for('admin_bp.admin_panel') }}" style="color: #ffcc00; font-weight: bold;">🛠 Panel Admin</a>
         {% endif %}
       </nav>
     </div>
@@ -50,6 +107,7 @@
 
         <form class="form-nuevo" method="POST" action="{{ url_for('experiments_bp.add_experiment') }}" enctype="multipart/form-data">
           <h2>🧪 Nuevo Experimento</h2>
+
           <div class="form-row">
             <label for="titulo">Título:</label>
             <input type="text" name="titulo" id="titulo" required>
@@ -88,6 +146,12 @@
                 <option value="{{ u['id'] }}">{{ u['nombre'] }}</option>
               {% endfor %}
             </select>
+          </div>
+          {% else %}
+          <div class="form-row">
+            <label for="responsable">Responsable:</label>
+            <input type="text" value="{{ session['nombre'] }}" disabled>
+            <input type="hidden" name="responsable" value="{{ session['usuario_id'] }}">
           </div>
           {% endif %}
 
@@ -131,9 +195,14 @@
                   {% endif %}
                 </td>
                 <td>
-                  <form method="GET" action="{{ url_for('experiments_bp.delete_experiment', id=exp['id']) }}" onsubmit="return confirm('¿Eliminar este experimento?');">
-                    <button class="btn-eliminar" type="submit">Eliminar</button>
-                  </form>
+                  <div class="edit-actions">
+                    <!-- Botón Editar: data-id para JS -->
+                    <button class="btn-editar" data-id="{{ exp['id'] }}">✏️ Editar</button>
+
+                    <form method="GET" action="{{ url_for('experiments_bp.delete_experiment', id=exp['id']) }}" onsubmit="return confirm('¿Eliminar este experimento?');" style="display:inline;">
+                      <button class="btn-eliminar" type="submit">Eliminar</button>
+                    </form>
+                  </div>
                 </td>
               </tr>
               {% endfor %}
@@ -143,23 +212,72 @@
           <p class="sin-experimentos">Aún no hay experimentos registrados.</p>
         {% endif %}
 
-        <!-- =============================== -->
-        <!--    PANEL DE EVENTOS EN TIEMPO REAL  -->
-        <!-- =============================== -->
         <h2 class="titulo-lista">🔔 Actividad reciente</h2>
         <div id="eventos" class="eventos-box"></div>
 
-        <!-- Calendario -->
         <h2 class="titulo-lista">🗓️ Calendario de Experimentos</h2>
         <div id="calendar"></div>
       </section>
     </div>
   </div>
 
-  <!-- FullCalendar -->
+  <!-- Side modal + overlay -->
+  <div id="sideOverlay" class="side-overlay"></div>
+
+  <aside id="sideModal" class="side-modal" aria-hidden="true">
+    <button id="closeModal" class="close-btn">Cerrar</button>
+    <h3>Editar Experimento</h3>
+
+    <form id="editForm" method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="id" id="edit_id">
+
+      <div class="form-row">
+        <label for="edit_titulo">Título</label>
+        <input type="text" name="titulo" id="edit_titulo" required>
+      </div>
+
+      <div class="form-row">
+        <label for="edit_descripcion">Descripción</label>
+        <textarea name="descripcion" id="edit_descripcion" rows="4" required></textarea>
+      </div>
+
+      <div class="form-row">
+        <label for="edit_fecha_inicio">Fecha inicio</label>
+        <input type="date" name="fecha_inicio" id="edit_fecha_inicio">
+      </div>
+
+      <div class="form-row">
+        <label for="edit_fecha_fin">Fecha fin</label>
+        <input type="date" name="fecha_fin" id="edit_fecha_fin">
+      </div>
+
+      <div class="form-row">
+        <label for="edit_estado">Estado</label>
+        <select name="estado" id="edit_estado">
+          <option value="Planificado">Planificado</option>
+          <option value="En progreso">En progreso</option>
+          <option value="Finalizado">Finalizado</option>
+        </select>
+      </div>
+
+      <div class="form-row" id="responsableBlock">
+        <!-- se completa por JS según si usuario es admin -->
+      </div>
+
+      <div class="form-row">
+        <label for="edit_protocolo">Archivo de protocolo (reemplaza si subís uno nuevo)</label>
+        <input type="file" name="protocolo" id="edit_protocolo" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+        <p id="currentFile" style="font-size:0.9rem;color:#666;margin-top:6px;"></p>
+      </div>
+
+      <button type="submit" id="saveEdit" class="btn-save">Guardar cambios</button>
+    </form>
+  </aside>
+
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      // FullCalendar
       const calendarEl = document.getElementById('calendar');
       const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
@@ -172,28 +290,126 @@
         },
         events: "{{ url_for('experiments_bp.experiments_events') }}",
         eventDisplay: 'block',
-        eventTextColor: '#fff',
+        eventTextColor: '#fff'
+      });
+      calendar.render();
 
-        eventDidMount: function(info) {
-          const tooltip = document.createElement('div');
-          tooltip.className = 'tooltip';
-          tooltip.innerHTML = `<b>${info.event.title}</b><br>${info.event.extendedProps.description || ''}`;
-          document.body.appendChild(tooltip);
+      // Modal elements
+      const sideModal = document.getElementById('sideModal');
+      const sideOverlay = document.getElementById('sideOverlay');
+      const closeModal = document.getElementById('closeModal');
+      const editForm = document.getElementById('editForm');
+      const responsableBlock = document.getElementById('responsableBlock');
+      const currentFileP = document.getElementById('currentFile');
 
-          info.el.addEventListener('mouseenter', e => {
-            tooltip.style.display = 'block';
-            tooltip.style.left = (e.pageX + 10) + 'px';
-            tooltip.style.top = (e.pageY + 10) + 'px';
-          });
-          info.el.addEventListener('mouseleave', () => tooltip.style.display = 'none');
-        }
+      function openModal() {
+        sideModal.classList.add('open');
+        sideOverlay.classList.add('open');
+        document.querySelector('.main').classList.add('shift-right');
+      }
+      function closeModalFn() {
+        sideModal.classList.remove('open');
+        sideOverlay.classList.remove('open');
+        document.querySelector('.main').classList.remove('shift-right');
+        // limpiar form
+        editForm.reset();
+        responsableBlock.innerHTML = "";
+        currentFileP.textContent = "";
+      }
+
+      closeModal.addEventListener('click', closeModalFn);
+      sideOverlay.addEventListener('click', closeModalFn);
+
+      // Cuando hacen click en "Editar" en la tabla
+      document.querySelectorAll('.btn-editar').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const id = btn.dataset.id;
+          // fetch datos
+          const resp = await fetch(`{{ url_for('experiments_bp.experiments') }}`.replace('/experiments', '/experiments/get') + '/' + id);
+          // NOTE: Construcción de URL porque Jinja ya generó base; alternativa: usar /experiments/get/${id}
+          // usar ruta absoluta:
+          // const resp = await fetch(`/experiments/get/${id}`);
+          // Pero debido a render, las dos funcionan; we'll fallback to absolute:
+          // (Let's do absolute to avoid errors)
+          try {
+            const r = await fetch(`/experiments/get/${id}`);
+            if (!r.ok) {
+              const err = await r.json().catch(() => ({}));
+              alert(err.error || 'No autorizado o error al traer datos.');
+              return;
+            }
+            const data = await r.json();
+            const exp = data.experimento;
+            const usuarios = data.usuarios || [];
+
+            // rellenar campos
+            document.getElementById('edit_id').value = exp.id;
+            document.getElementById('edit_titulo').value = exp.titulo || "";
+            document.getElementById('edit_descripcion').value = exp.descripcion || "";
+            document.getElementById('edit_fecha_inicio').value = exp.fecha_inicio || "";
+            document.getElementById('edit_fecha_fin').value = exp.fecha_fin || "";
+            document.getElementById('edit_estado').value = exp.estado || "Planificado";
+            currentFileP.textContent = exp.protocolo_archivo ? `Archivo actual: ${exp.protocolo_archivo}` : "No hay archivo asociado";
+
+            // responsableBlock: si usuario es admin, data.usuarios tendrá lista; si no, mostrar nombre y hidden
+            responsableBlock.innerHTML = "";
+            if (usuarios.length > 0) {
+              // admin: construir select
+              const label = document.createElement('label');
+              label.textContent = "Responsable";
+              const select = document.createElement('select');
+              select.name = "responsable";
+              select.id = "edit_responsable";
+              select.style.padding = "0.5rem";
+              select.style.borderRadius = "6px";
+              select.style.border = "1px solid #ccc";
+              // opción vacía permitida
+              const emptyOpt = document.createElement('option');
+              emptyOpt.value = "";
+              emptyOpt.textContent = "-- Seleccionar responsable --";
+              select.appendChild(emptyOpt);
+              usuarios.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.id;
+                opt.textContent = u.nombre;
+                if (String(u.id) === String(exp.responsable_id)) opt.selected = true;
+                select.appendChild(opt);
+              });
+              responsableBlock.appendChild(label);
+              responsableBlock.appendChild(select);
+            } else {
+              // usuario normal: mostrar nombre (será enviado como hidden)
+              const label = document.createElement('label');
+              label.textContent = "Responsable";
+              const input = document.createElement('input');
+              input.type = "text";
+              input.disabled = true;
+              // nombre del usuario en sesión => lo mostramos desde Jinja
+              input.value = "{{ session['nombre'] }}";
+              const hidden = document.createElement('input');
+              hidden.type = "hidden";
+              hidden.name = "responsable";
+              hidden.value = exp.responsable_id || "{{ session['usuario_id'] }}";
+              responsableBlock.appendChild(label);
+              responsableBlock.appendChild(input);
+              responsableBlock.appendChild(hidden);
+            }
+
+            // ajustar form action a /experiments/update/<id>
+            editForm.action = `/experiments/update/${exp.id}`;
+
+            openModal();
+          } catch (error) {
+            console.error(error);
+            alert('Error al cargar el experimento. Revisa la consola.');
+          }
+        });
       });
 
-      calendar.render();
+      // No necesitamos JS para submit: el form hará POST a /experiments/update/<id> con multipart/form-data
     });
   </script>
 
-  <!-- Socket.IO -->
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="/static/socket.js"></script>
 

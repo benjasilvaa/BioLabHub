@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, send_from_directory, jsonify, abort
 import os
 import sqlite3
 from werkzeug.utils import secure_filename
@@ -51,16 +51,19 @@ def experiments():
     # Experimentos
     cur.execute("""
         SELECT e.id, e.titulo, e.descripcion, e.fecha_inicio, e.fecha_fin, 
-               e.estado, e.protocolo_archivo, u.nombre AS responsable
+               e.estado, e.protocolo_archivo, u.nombre AS responsable, e.responsable_id
         FROM experimentos e
         LEFT JOIN usuarios u ON e.responsable_id = u.id
+        WHERE e.estado_logico = 0 OR e.estado_logico IS NULL
         ORDER BY e.id DESC
     """)
     experimentos = cur.fetchall()
 
-    # Usuarios (para admin)
-    cur.execute("SELECT id, nombre FROM usuarios")
-    usuarios = cur.fetchall()
+    # Usuarios solo si es admin (para el form de crear)
+    usuarios = []
+    if session.get("rol") == "admin":
+        cur.execute("SELECT id, nombre FROM usuarios WHERE estado_logico = 0 OR estado_logico IS NULL ORDER BY nombre ASC")
+        usuarios = cur.fetchall()
 
     conn.close()
 
@@ -82,7 +85,12 @@ def add_experiment():
     fecha_inicio = request.form.get("fecha_inicio")
     fecha_fin = request.form.get("fecha_fin")
     estado = request.form.get("estado")
-    responsable = request.form.get("responsable") or None
+
+    # 💥 SI NO ES ADMIN → responsable = usuario logueado
+    if session.get("rol") != "admin":
+        responsable = session.get("usuario_id")
+    else:
+        responsable = request.form.get("responsable") or None
 
     archivo = request.files.get("protocolo")
     archivo_nombre = None
@@ -113,7 +121,7 @@ def add_experiment():
     nuevo_id = cur.lastrowid
     conn.close()
 
-    # 🧮 Recalcular DVH del nuevo registro
+    # 🧮 Calcular DVH
     datos_experimento = {
         "titulo": titulo,
         "descripcion": descripcion,
@@ -131,10 +139,10 @@ def add_experiment():
     conn.commit()
     conn.close()
 
-    # 🔄 Actualizar DVV
+    # 🔄 DVV
     recalcular_dvv("experimentos")
 
-    # 📝 Registrar auditoría
+    # 📝 Auditoría
     registrar_auditoria(
         usuario_id=session.get("usuario_id"),
         accion="CREAR EXPERIMENTO",
@@ -152,6 +160,136 @@ def add_experiment():
 
 
 # ---------------------------
+#  RUTA: OBTENER DATOS DE UN EXPERIMENTO (para el modal)
+# ---------------------------
+@experiments_bp.route("/get/<int:id>")
+def get_experiment(id):
+    # requiere sesión
+    if "usuario_id" not in session:
+        return jsonify({"error": "No autenticado."}), 401
+
+    conn = conectar_bd()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT id, titulo, descripcion, fecha_inicio, fecha_fin, estado, protocolo_archivo, responsable_id
+        FROM experimentos
+        WHERE id = ? AND (estado_logico = 0 OR estado_logico IS NULL)
+    """, (id,))
+    row = cur.fetchone()
+
+    if not row:
+        conn.close()
+        return jsonify({"error": "Experimento no encontrado."}), 404
+
+    # Solo admin o responsable pueden ver los datos para editar
+    if session.get("rol") != "admin" and row["responsable_id"] != session.get("usuario_id"):
+        conn.close()
+        return jsonify({"error": "No tenés permisos para editar este experimento."}), 403
+
+    # Si es admin, traer lista de usuarios para el select de responsables
+    usuarios = []
+    if session.get("rol") == "admin":
+        cur.execute("SELECT id, nombre FROM usuarios WHERE estado_logico = 0 OR estado_logico IS NULL ORDER BY nombre ASC")
+        usuarios = [dict(u) for u in cur.fetchall()]
+
+    exp = dict(row)
+    conn.close()
+
+    return jsonify({"experimento": exp, "usuarios": usuarios}), 200
+
+
+# ---------------------------
+#  RUTA: ACTUALIZAR EXPERIMENTO (recibe POST desde modal)
+# ---------------------------
+@experiments_bp.route("/update/<int:id>", methods=["POST"])
+def update_experiment(id):
+    if "usuario_id" not in session:
+        flash("Debes iniciar sesión.", "error")
+        return redirect(url_for("login_bp.login"))
+
+    conn = conectar_bd()
+    cur = conn.cursor()
+
+    # Obtener experimento actual
+    cur.execute("SELECT * FROM experimentos WHERE id = ?", (id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        flash("Experimento no encontrado.", "error")
+        return redirect(url_for("experiments_bp.experiments"))
+
+    # Permisos: admin puede editar cualquiera, usuario normal solo si es responsable
+    if session.get("rol") != "admin" and row["responsable_id"] != session.get("usuario_id"):
+        conn.close()
+        flash("No tenés permiso para editar este experimento.", "error")
+        return redirect(url_for("experiments_bp.experiments"))
+
+    # Campos que se pueden actualizar
+    titulo = request.form.get("titulo")
+    descripcion = request.form.get("descripcion")
+    fecha_inicio = request.form.get("fecha_inicio")
+    fecha_fin = request.form.get("fecha_fin")
+    estado = request.form.get("estado")
+
+    # Responsable: solo admin puede modificarlo
+    if session.get("rol") == "admin":
+        responsable = request.form.get("responsable") or None
+    else:
+        responsable = row["responsable_id"]
+
+    # Protocolo (archivo): si suben uno nuevo, reemplaza
+    archivo = request.files.get("protocolo")
+    protocolo_nombre = row["protocolo_archivo"]  # por defecto el viejo
+    if archivo and archivo.filename:
+        protocolo_nombre = secure_filename(archivo.filename)
+        archivo.save(os.path.join(UPLOAD_FOLDER, protocolo_nombre))
+
+    # UPDATE en la BD
+    cur.execute("""
+        UPDATE experimentos
+        SET titulo = ?, descripcion = ?, fecha_inicio = ?, fecha_fin = ?, estado = ?, responsable_id = ?, protocolo_archivo = ?
+        WHERE id = ?
+    """, (titulo, descripcion, fecha_inicio, fecha_fin, estado, responsable, protocolo_nombre, id))
+    conn.commit()
+
+    # Recalcular DVH para este registro
+    datos_experimento = {
+        "titulo": titulo,
+        "descripcion": descripcion,
+        "fecha_inicio": fecha_inicio,
+        "fecha_fin": fecha_fin,
+        "estado": estado,
+        "responsable_id": responsable,
+        "protocolo_archivo": protocolo_nombre
+    }
+    dvh_nuevo = sum(len(str(v)) for v in datos_experimento.values())
+
+    cur.execute("UPDATE experimentos SET dvh = ? WHERE id = ?", (dvh_nuevo, id))
+    conn.commit()
+    conn.close()
+
+    # 🔄 Actualizar DVV
+    recalcular_dvv("experimentos")
+
+    # 📝 Auditoría
+    registrar_auditoria(
+        usuario_id=session.get("usuario_id"),
+        accion="EDITAR EXPERIMENTO",
+        tabla="experimentos",
+        registro_id=id,
+        ip_origen=request.remote_addr
+    )
+
+    # 🎯 WebSocket
+    from servidor import socketio
+    socketio.emit("experiment_event", f"✏️ Experimento actualizado: {titulo}")
+
+    flash("Experimento actualizado correctamente.", "success")
+    return redirect(url_for("experiments_bp.experiments"))
+
+
+# ---------------------------
 #  ELIMINAR EXPERIMENTO
 # ---------------------------
 
@@ -160,17 +298,17 @@ def delete_experiment(id):
     conn = conectar_bd()
     cur = conn.cursor()
 
-    # Obtener nombre para el evento
+    # Obtener nombre para WebSocket
     cur.execute("SELECT titulo FROM experimentos WHERE id = ?", (id,))
     row = cur.fetchone()
     titulo = row["titulo"] if row else "(desconocido)"
 
-    # Borrado lógico (si querés mantener DVH)
+    # Borrado lógico
     cur.execute("UPDATE experimentos SET estado_logico = 1 WHERE id = ?", (id,))
     conn.commit()
     conn.close()
 
-    # DVV se actualiza igual
+    # DVV
     recalcular_dvv("experimentos")
 
     # Auditoría
@@ -182,7 +320,7 @@ def delete_experiment(id):
         ip_origen=request.remote_addr
     )
 
-    # 🎯 WebSocket
+    # WebSocket
     from servidor import socketio
     socketio.emit("experiment_event", f"🗑️ Experimento eliminado: {titulo}")
 

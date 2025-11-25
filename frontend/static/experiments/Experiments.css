@@ -113,7 +113,7 @@ body {
   overflow-y: auto;
 }
 
-/* Tipografía consistente en negrita donde corresponde */
+/* Tipografía */
 .navbar, .sidebar nav a, h1, h2 {
   font-weight: bold;
 }
@@ -223,4 +223,24 @@ input, textarea, select {
   pointer-events: none;
   display: none;
   z-index: 1000;
+}
+
+/* ============================= */
+/*   FIX DEL MODAL (IMPORTANT)   */
+/* ============================= */
+
+/* Evita el offset que empuja el modal a la derecha */
+.modal {
+  padding-left: 0 !important;
+}
+
+/* Centra el modal correctamente */
+.modal-dialog {
+  margin: auto !important;
+}
+
+/* Evita que Bootstrap aplique padding raro al body */
+body.modal-open {
+  overflow-y: auto;
+  padding-right: 0 !important;
 }

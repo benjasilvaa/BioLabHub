@@ -28,6 +28,7 @@
         <a href="{{ url_for('experiments_bp.experiments') }}">Experiment Planner</a>
         <a href="{{ url_for('reagents') }}">ReagentVault</a>
         <a href="{{ url_for('equipments_bp.equipreserve') }}" class="active">EquipReserve</a>
+
         {% if session.get("rol") == "admin" %}
         <a href="{{ url_for('admin_bp.admin_panel') }}" style="color: #ffcc00; font-weight: bold;">
           🛠 Panel Admin
@@ -74,6 +75,29 @@
     </div>
   </div>
 
+  <!-- ============================
+       🟦 MODAL PARA EDITAR EVENTO 
+       ============================ -->
+  <div id="modalEditar" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h3>✏ Editar Reserva</h3>
+
+      <form id="formEditar" method="POST">
+        <label>Equipo:</label>
+        <input id="editar_equipo" type="text" name="equipo" required>
+
+        <label>Inicio:</label>
+        <input id="editar_inicio" type="datetime-local" name="fecha_inicio" required>
+
+        <label>Fin:</label>
+        <input id="editar_fin" type="datetime-local" name="fecha_fin" required>
+
+        <button type="submit">Guardar cambios</button>
+        <button type="button" onclick="cerrarModal()" class="cancel">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
   <script>
@@ -89,20 +113,71 @@
           center: 'title',
           right: 'dayGridMonth,timeGridWeek,listWeek'
         },
-        events: "{{ url_for('equipments_bp.equipreserve_events') }}"
+
+        // ==== carga de eventos desde Flask ====
+        events: "{{ url_for('equipments_bp.equipreserve_events') }}",
+
+        // ==== botones Editar / Eliminar en cada evento ====
+        eventDidMount: function(info) {
+
+          const userId = "{{ session['usuario_id'] }}";
+          const userRol = "{{ session['rol'] }}";
+          const creador = info.event.extendedProps.usuario_id;
+          const rid = info.event.extendedProps.rid;  // ahora sí existe
+
+          if (userRol === "admin" || creador == userId) {
+            let buttons = document.createElement("div");
+            buttons.innerHTML = `
+              <button class="edit-btn" onclick="editarReserva('${ rid }')">✏</button>
+              <button class="delete-btn" onclick="eliminarReserva('${ rid }')">🗑</button>
+            `;
+            buttons.classList.add("event-buttons");
+            info.el.appendChild(buttons);
+          }
+        }   
+
       });
 
       window.calendar.render();
     });
+
+    // ========== ELIMINAR ==========
+    function eliminarReserva(rid) {
+      if (!confirm("¿Eliminar esta reserva?")) return;
+
+      fetch(`/equipreserve/delete/${rid}`, { method: "POST" })
+        .then(() => window.calendar.refetchEvents());
+    }
+
+    // ========== EDITAR ==========
+    function editarReserva(rid) {
+      fetch(`/equipreserve/get/${rid}`)
+        .then(r => r.json())
+        .then(data => {
+
+          document.getElementById("editar_equipo").value = data.equipo;
+          document.getElementById("editar_inicio").value = data.fecha_inicio;
+          document.getElementById("editar_fin").value = data.fecha_fin;
+
+          document.getElementById("formEditar").action = `/equipreserve/edit/${rid}`;
+          abrirModal();
+        });
+    }
+
+    function abrirModal() {
+      document.getElementById("modalEditar").style.display = "flex";
+    }
+
+    function cerrarModal() {
+      document.getElementById("modalEditar").style.display = "none";
+    }
   </script>
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="/static/socket.js"></script>
 
   <script>
-    // 🔥 Cuando el servidor avisa que algo cambió → recargar eventos
     socket.on("refresh_calendar", (data) => {
-      console.log("🔄 Actualizando calendario:", data.msg);
       window.calendar.refetchEvents();
     });
   </script>
