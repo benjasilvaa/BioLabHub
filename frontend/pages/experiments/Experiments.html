@@ -8,11 +8,10 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='experiments/Experiments.css') }}">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
   <style>
-    /* Side modal (panel derecho) */
     .side-modal {
       position: fixed;
-      top: 70px; /* debajo del navbar */
-      right: -520px; /* oculto fuera de vista */
+      top: 70px;
+      right: -520px;
       width: 520px;
       height: calc(100vh - 90px);
       background: #fff;
@@ -53,7 +52,6 @@
       width: 100%;
     }
     .edit-actions { display:flex; gap:8px; align-items:center; }
-    /* pequeño overlay para atenuar */
     .side-overlay {
       position: fixed;
       inset: 70px 0 0 0;
@@ -62,7 +60,6 @@
       z-index: 1000;
     }
     .side-overlay.open { display:block; }
-    /* Acomodo del formulario principal para dejar sitio al modal (opcional) */
     .main { transition: margin-right 0.28s ease; }
     .main.shift-right { margin-right: 520px; }
   </style>
@@ -74,7 +71,7 @@
       <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
     </div>
     <div class="user-avatar">
-      <span>👤 {{ session['nombre'] if 'nombre' in session else 'Invitado' }}</span>
+      <span> {{ session['nombre'] if 'nombre' in session else 'Invitado' }}</span>
       <a href="{{ url_for('login_bp.logout') }}" class="logout-btn">Cerrar sesión</a>
     </div>
   </nav>
@@ -88,7 +85,7 @@
         <a href="{{ url_for('reagents') }}">ReagentVault</a>
         <a href="{{ url_for('equipments_bp.equipreserve') }}">EquipReserve</a>
         {% if session.get("rol") == "admin" %}
-        <a href="{{ url_for('admin_bp.admin_panel') }}" style="color: #ffcc00; font-weight: bold;">🛠 Panel Admin</a>
+        <a href="{{ url_for('admin_bp.admin_panel') }}" style="color: #ffcc00; font-weight: bold;"> Panel Admin</a>
         {% endif %}
       </nav>
     </div>
@@ -106,7 +103,7 @@
         {% endwith %}
 
         <form class="form-nuevo" method="POST" action="{{ url_for('experiments_bp.add_experiment') }}" enctype="multipart/form-data">
-          <h2>🧪 Nuevo Experimento</h2>
+          <h2> Nuevo Experimento</h2>
 
           <div class="form-row">
             <label for="titulo">Título:</label>
@@ -163,7 +160,7 @@
           <button type="submit" class="btn-crear">Crear experimento</button>
         </form>
 
-        <h2 class="titulo-lista">📋 Experimentos Registrados</h2>
+        <h2 class="titulo-lista"> Experimentos Registrados</h2>
         {% if experimentos %}
           <table class="tabla-experimentos">
             <thead>
@@ -189,15 +186,15 @@
                 <td>{{ exp['estado'] or '-' }}</td>
                 <td>
                   {% if exp['protocolo_archivo'] %}
-                    <a href="{{ url_for('experiments_bp.descargar_protocolo', filename=exp['protocolo_archivo']) }}" target="_blank">📄 Descargar</a>
+                    <a href="{{ url_for('experiments_bp.descargar_protocolo', filename=exp['protocolo_archivo']) }}" target="_blank"> Descargar</a>
                   {% else %}
                     <span class="sin-archivo">Sin archivo</span>
                   {% endif %}
                 </td>
                 <td>
                   <div class="edit-actions">
-                    <!-- Botón Editar: data-id para JS -->
-                    <button class="btn-editar" data-id="{{ exp['id'] }}">✏️ Editar</button>
+                    
+                    <button class="btn-editar" data-id="{{ exp['id'] }}">Editar</button>
 
                     <form method="GET" action="{{ url_for('experiments_bp.delete_experiment', id=exp['id']) }}" onsubmit="return confirm('¿Eliminar este experimento?');" style="display:inline;">
                       <button class="btn-eliminar" type="submit">Eliminar</button>
@@ -212,16 +209,16 @@
           <p class="sin-experimentos">Aún no hay experimentos registrados.</p>
         {% endif %}
 
-        <h2 class="titulo-lista">🔔 Actividad reciente</h2>
+        <h2 class="titulo-lista"> Actividad reciente</h2>
         <div id="eventos" class="eventos-box"></div>
 
-        <h2 class="titulo-lista">🗓️ Calendario de Experimentos</h2>
+        <h2 class="titulo-lista"> Calendario de Experimentos</h2>
         <div id="calendar"></div>
       </section>
     </div>
   </div>
 
-  <!-- Side modal + overlay -->
+  
   <div id="sideOverlay" class="side-overlay"></div>
 
   <aside id="sideModal" class="side-modal" aria-hidden="true">
@@ -261,7 +258,7 @@
       </div>
 
       <div class="form-row" id="responsableBlock">
-        <!-- se completa por JS según si usuario es admin -->
+        
       </div>
 
       <div class="form-row">
@@ -277,7 +274,6 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // FullCalendar
       const calendarEl = document.getElementById('calendar');
       const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
@@ -294,7 +290,6 @@
       });
       calendar.render();
 
-      // Modal elements
       const sideModal = document.getElementById('sideModal');
       const sideOverlay = document.getElementById('sideOverlay');
       const closeModal = document.getElementById('closeModal');
@@ -311,7 +306,6 @@
         sideModal.classList.remove('open');
         sideOverlay.classList.remove('open');
         document.querySelector('.main').classList.remove('shift-right');
-        // limpiar form
         editForm.reset();
         responsableBlock.innerHTML = "";
         currentFileP.textContent = "";
@@ -320,17 +314,9 @@
       closeModal.addEventListener('click', closeModalFn);
       sideOverlay.addEventListener('click', closeModalFn);
 
-      // Cuando hacen click en "Editar" en la tabla
       document.querySelectorAll('.btn-editar').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           const id = btn.dataset.id;
-          // fetch datos
-          const resp = await fetch(`{{ url_for('experiments_bp.experiments') }}`.replace('/experiments', '/experiments/get') + '/' + id);
-          // NOTE: Construcción de URL porque Jinja ya generó base; alternativa: usar /experiments/get/${id}
-          // usar ruta absoluta:
-          // const resp = await fetch(`/experiments/get/${id}`);
-          // Pero debido a render, las dos funcionan; we'll fallback to absolute:
-          // (Let's do absolute to avoid errors)
           try {
             const r = await fetch(`/experiments/get/${id}`);
             if (!r.ok) {
@@ -342,7 +328,6 @@
             const exp = data.experimento;
             const usuarios = data.usuarios || [];
 
-            // rellenar campos
             document.getElementById('edit_id').value = exp.id;
             document.getElementById('edit_titulo').value = exp.titulo || "";
             document.getElementById('edit_descripcion').value = exp.descripcion || "";
@@ -351,10 +336,8 @@
             document.getElementById('edit_estado').value = exp.estado || "Planificado";
             currentFileP.textContent = exp.protocolo_archivo ? `Archivo actual: ${exp.protocolo_archivo}` : "No hay archivo asociado";
 
-            // responsableBlock: si usuario es admin, data.usuarios tendrá lista; si no, mostrar nombre y hidden
             responsableBlock.innerHTML = "";
             if (usuarios.length > 0) {
-              // admin: construir select
               const label = document.createElement('label');
               label.textContent = "Responsable";
               const select = document.createElement('select');
@@ -363,7 +346,6 @@
               select.style.padding = "0.5rem";
               select.style.borderRadius = "6px";
               select.style.border = "1px solid #ccc";
-              // opción vacía permitida
               const emptyOpt = document.createElement('option');
               emptyOpt.value = "";
               emptyOpt.textContent = "-- Seleccionar responsable --";
@@ -378,13 +360,11 @@
               responsableBlock.appendChild(label);
               responsableBlock.appendChild(select);
             } else {
-              // usuario normal: mostrar nombre (será enviado como hidden)
               const label = document.createElement('label');
               label.textContent = "Responsable";
               const input = document.createElement('input');
               input.type = "text";
               input.disabled = true;
-              // nombre del usuario en sesión => lo mostramos desde Jinja
               input.value = "{{ session['nombre'] }}";
               const hidden = document.createElement('input');
               hidden.type = "hidden";
@@ -395,7 +375,6 @@
               responsableBlock.appendChild(hidden);
             }
 
-            // ajustar form action a /experiments/update/<id>
             editForm.action = `/experiments/update/${exp.id}`;
 
             openModal();
@@ -406,7 +385,6 @@
         });
       });
 
-      // No necesitamos JS para submit: el form hará POST a /experiments/update/<id> con multipart/form-data
     });
   </script>
 

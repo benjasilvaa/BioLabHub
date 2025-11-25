@@ -15,7 +15,7 @@
       <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}">
     </div>
     <div class="user-avatar">
-      <span>👤 {{ session['nombre'] }}</span>
+      <span> {{ session['nombre'] }}</span>
       <a href="{{ url_for('login_bp.logout') }}" class="logout-btn">Cerrar sesión</a>
     </div>
   </nav>
@@ -31,14 +31,14 @@
 
         {% if session.get("rol") == "admin" %}
         <a href="{{ url_for('admin_bp.admin_panel') }}" style="color: #ffcc00; font-weight: bold;">
-          🛠 Panel Admin
+           Panel Admin
         </a>
         {% endif %}
       </nav>
     </div>
 
     <div class="main">
-      <h1>🧰 EquipReserve – Reservas de Equipos</h1>
+      <h1>EquipReserve – Reservas de Equipos</h1>
 
       {% with mensajes = get_flashed_messages(with_categories=true) %}
         {% if mensajes %}
@@ -49,7 +49,7 @@
       {% endwith %}
 
       <form class="form-nuevo" method="POST" action="{{ url_for('equipments_bp.add_reserva') }}">
-        <h2>➕ Nueva Reserva</h2>
+        <h2> Nueva Reserva</h2>
 
         <label>Equipo:</label>
         <select name="equipo" required>
@@ -68,19 +68,15 @@
         <button type="submit">Reservar equipo</button>
       </form>
 
-      <h2>🗓️ Calendario</h2>
+      <h2>Calendario</h2>
       <div id="calendar"></div>
 
       <div id="eventos" class="eventos"></div>
     </div>
   </div>
-
-  <!-- ============================
-       🟦 MODAL PARA EDITAR EVENTO 
-       ============================ -->
   <div id="modalEditar" class="modal" style="display:none;">
     <div class="modal-content">
-      <h3>✏ Editar Reserva</h3>
+      <h3> Editar Reserva</h3>
 
       <form id="formEditar" method="POST">
         <label>Equipo:</label>
@@ -114,22 +110,20 @@
           right: 'dayGridMonth,timeGridWeek,listWeek'
         },
 
-        // ==== carga de eventos desde Flask ====
         events: "{{ url_for('equipments_bp.equipreserve_events') }}",
 
-        // ==== botones Editar / Eliminar en cada evento ====
         eventDidMount: function(info) {
 
           const userId = "{{ session['usuario_id'] }}";
           const userRol = "{{ session['rol'] }}";
           const creador = info.event.extendedProps.usuario_id;
-          const rid = info.event.extendedProps.rid;  // ahora sí existe
+          const rid = info.event.extendedProps.rid;
 
           if (userRol === "admin" || creador == userId) {
             let buttons = document.createElement("div");
             buttons.innerHTML = `
-              <button class="edit-btn" onclick="editarReserva('${ rid }')">✏</button>
-              <button class="delete-btn" onclick="eliminarReserva('${ rid }')">🗑</button>
+              <button class="edit-btn" onclick="editarReserva('${ rid }')"></button>
+              <button class="delete-btn" onclick="eliminarReserva('${ rid }')"></button>
             `;
             buttons.classList.add("event-buttons");
             info.el.appendChild(buttons);
@@ -141,7 +135,6 @@
       window.calendar.render();
     });
 
-    // ========== ELIMINAR ==========
     function eliminarReserva(rid) {
       if (!confirm("¿Eliminar esta reserva?")) return;
 
@@ -149,7 +142,6 @@
         .then(() => window.calendar.refetchEvents());
     }
 
-    // ========== EDITAR ==========
     function editarReserva(rid) {
       fetch(`/equipreserve/get/${rid}`)
         .then(r => r.json())

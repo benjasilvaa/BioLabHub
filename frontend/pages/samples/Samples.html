@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='samples/Samples.css') }}">
 
   <style>
-    /* ===== CARDS DEL DASHBOARD ===== */
     .stats-cards {
       display: flex;
       gap: 20px;
@@ -43,19 +42,19 @@
 </head>
 
 <body>
-  <!-- 🔵 Navbar -->
+  
   <nav class="navbar">
     <div class="logo-container">
       <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
     </div>
     <div class="user-avatar">
-      <span>👤 {{ session['nombre'] if 'nombre' in session else 'Invitado' }}</span>
+      <span> {{ session['nombre'] if 'nombre' in session else 'Invitado' }}</span>
       <a href="{{ url_for('login_bp.logout') }}" class="logout-btn">Cerrar sesión</a>
     </div>
   </nav>
 
   <div class="content">
-    <!-- Sidebar -->
+    
     <div class="sidebar">
       <nav>
         <a href="{{ url_for('home_bp.home') }}">Inicio</a>
@@ -65,16 +64,16 @@
         <a href="{{ url_for('equipments_bp.equipreserve') }}">EquipReserve</a>
         {% if session.get("rol") == "admin" %}
         <a href="{{ url_for('admin_bp.admin_panel') }}" style="color: #ffcc00; font-weight: bold;">
-          🛠 Panel Admin
+           Panel Admin
         </a>
         {% endif %}
       </nav>
     </div>
-    <!-- Contenido principal -->
+    
     <div class="main">
-      <h1>🧫 SampleTrack – Seguimiento de Muestras</h1>
+      <h1> SampleTrack – Seguimiento de Muestras</h1>
 
-      <!-- ====== CARDS DE ESTADÍSTICAS ====== -->
+      
       <div class="stats-cards">
         <div class="stat-card">
           <div class="stat-title">Total Activas</div>
@@ -103,7 +102,7 @@
       </div>
 
 
-      <!-- Formulario nueva muestra -->
+      
       <form class="form-nueva" method="POST" action="{{ url_for('samples_bp.add_sample') }}">
         <input type="text" name="nombre" placeholder="Nombre de la muestra" required>
         <input type="text" name="tipo" placeholder="Tipo">
@@ -124,8 +123,8 @@
         <button type="submit">Agregar</button>
       </form>
 
-      <!-- Listado de muestras -->
-      <h2>📋 Muestras registradas</h2>
+      
+      <h2> Muestras registradas</h2>
       {% if muestras %}
       <table>
         <thead>
@@ -162,8 +161,8 @@
                 </select>
               </td>
               <td>
-                <button type="submit">💾</button>
-                <a href="{{ url_for('samples_bp.delete_sample', id=m['id']) }}" onclick="return confirm('¿Eliminar muestra?')">🗑️</a>
+                <button type="submit"></button>
+                <a href="{{ url_for('samples_bp.delete_sample', id=m['id']) }}" onclick="return confirm('¿Eliminar muestra?')"></a>
               </td>
             </form>
           </tr>
@@ -174,11 +173,11 @@
         <p>No hay muestras registradas.</p>
       {% endif %}
 
-      <!-- Eventos en tiempo real -->
+      
       <div id="eventos" class="eventos"></div>
     </div>
   </div>
-  <!-- SOCKET.IO -->
+  
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="/static/socket.js"></script>
 </body>

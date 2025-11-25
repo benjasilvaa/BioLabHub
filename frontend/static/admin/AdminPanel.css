@@ -5,7 +5,7 @@ body {
   color: #111;
 }
 
-/* Navbar superior, igual al resto de la app */
+
 .navbar {
   width: 100%;
   background-color: #22a6b3;
@@ -66,7 +66,7 @@ body {
   }
 }
 
-/* Layout principal con sidebar */
+
 .content {
   display: flex;
   margin-top: 70px;

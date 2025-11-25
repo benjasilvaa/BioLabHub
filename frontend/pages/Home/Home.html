@@ -9,19 +9,19 @@
 </head>
 
 <body>
-  <!-- NAVBAR -->
+  
   <nav class="navbar">
     <div class="logo-container">
       <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
     </div>
     <div class="user-avatar">
-      <span>👤 {{ session['nombre'] if 'nombre' in session else 'Invitado' }}</span>
+      <span> {{ session['nombre'] if 'nombre' in session else 'Invitado' }}</span>
       <a href="{{ url_for('login_bp.logout') }}" class="logout-btn">Cerrar sesión</a>
     </div>
   </nav>
 
   <div class="content">
-    <!-- SIDEBAR -->
+    
     <div class="sidebar">
       <nav>
         <a href="{{ url_for('home_bp.home') }}" class="active">Inicio</a>
@@ -31,23 +31,23 @@
         <a href="{{ url_for('equipments_bp.equipreserve') }}">EquipReserve</a>
         {% if session.get("rol") == "admin" %}
         <a href="{{ url_for('admin_bp.admin_panel') }}" style="color: #ffcc00; font-weight: bold;">
-          🛠 Panel Admin
+           Panel Admin
         </a>
         {% endif %}
       </nav>
     </div>
 
-    <!-- CONTENIDO PRINCIPAL -->
+    
     <div class="main">
 
-      <!-- BIENVENIDA -->
+      
       <section class="welcome">
-        <h1>Hola {{ session['nombre'] }}, bienvenido a BioLabHub 🔬</h1>
+        <h1>Hola {{ session['nombre'] }}, bienvenido a BioLabHub </h1>
         <p class="desc">
           Tu centro de control para gestionar muestras, experimentos, reactivos y reservas de equipos.
         </p>
 
-        <!-- Estadísticas principales -->
+        
         <div class="stats-grid">
           <div class="stat-card">
             <h2>{{ 0 }}</h2>
@@ -68,7 +68,7 @@
         </div>
       </section>
 
-      <!-- ACCESOS RÁPIDOS -->
+      
       <section class="quick-access">
         <h2>Accesos rápidos</h2>
         <div class="qa-grid">
@@ -96,7 +96,7 @@
         </div>
       </section>
 
-      <!-- ACTIVIDAD RECIENTE -->
+      
       <section class="activity">
         <h2>Tu actividad reciente</h2>
         <ul class="activity-list">
@@ -104,7 +104,7 @@
           {% if actividad %}
             {% for item in actividad %}
               <li>
-                <span class="icon">✔</span>
+                <span class="icon"></span>
                 <p>{{ item }}</p>
               </li>
             {% endfor %}
@@ -115,7 +115,7 @@
         </ul>
       </section>
 
-      <!-- TUS EXPERIMENTOS -->
+      
       <section class="experiments">
         <h2>TUS EXPERIMENTOS</h2>
         <div class="experiment-list">
@@ -139,7 +139,7 @@
         </div>
       </section>
 
-      <!-- EQUIPOS RESERVADOS -->
+      
       <section class="equipment">
         <h2>EQUIPOS RESERVADOS</h2>
         <div class="equipment-list">
@@ -163,14 +163,14 @@
         </div>
       </section>
 
-      <!-- NOVEDADES -->
+      
       <section class="news">
-        <h2>Novedades del laboratorio 🧪</h2>
+        <h2>Novedades del laboratorio </h2>
         <ul class="news-list">
-          <li>📌 Nuevo lote de reactivos cargado en ReagentVault.</li>
-          <li>⚠ Actualización: algunos equipos están en mantenimiento.</li>
-          <li>🧬 Agregado soporte para historial de muestras.</li>
-          <li>🔧 Mejoras en seguridad y auditoría del sistema.</li>
+          <li> Nuevo lote de reactivos cargado en ReagentVault.</li>
+          <li> Actualización: algunos equipos están en mantenimiento.</li>
+          <li> Agregado soporte para historial de muestras.</li>
+          <li> Mejoras en seguridad y auditoría del sistema.</li>
         </ul>
       </section>
 

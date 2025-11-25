@@ -5,7 +5,7 @@
   font-family: Arial, sans-serif;
 }
 
-/* NAVBAR SUPERIOR */
+
 .navbar {
   width: 100%;
   background-color: #22a6b3;
@@ -26,7 +26,7 @@
   filter: drop-shadow(0 0 2px rgba(0,0,0,0.3));
 }
 
-/* Avatar + nombre */
+
 .user-avatar {
   display: flex;
   align-items: center;
@@ -74,7 +74,7 @@
   color: #fff;
 }
 
-/* Botón cerrar sesión */
+
 .logout-btn {
   padding: 6px 12px;
   background-color: #ff4d4d;
@@ -89,7 +89,7 @@
   background-color: #e84343;
 }
 
-/* CONTENIDO GENERAL */
+
 .content {
   display: flex;
   margin-top: 70px;
@@ -97,7 +97,7 @@
   min-height: calc(100vh - 70px);
 }
 
-/* SIDEBAR IZQUIERDO */
+
 .sidebar {
   width: 220px;
   background: linear-gradient(180deg, #215a68 0%, #1b4c58 100%);
@@ -137,7 +137,7 @@
   background-color: rgba(255, 255, 255, 0.18);
 }
 
-/* CONTENIDO PRINCIPAL */
+
 .main {
   flex: 1;
   padding: 20px 30px;
@@ -157,7 +157,7 @@ section {
   font-size: 20px;
 }
 
-/* EXPERIMENTOS */
+
 .experiment-list {
   display: flex;
   gap: 15px;
@@ -220,7 +220,7 @@ section {
   display: block;
 }
 
-/* EQUIPOS RESERVADOS */
+
 .equipment-list {
   display: flex;
   gap: 15px;
@@ -249,7 +249,7 @@ section {
   object-fit: cover;
 }
 
-/* ---- OVERLAY MODIFICADO ---- */
+
 .equipment-item .overlay {
   position: absolute;
   inset: 0;
@@ -264,7 +264,7 @@ section {
   transition: opacity 0.3s ease-in-out, background 0.3s ease-in-out;
 }
 
-/* Texto ordenado dentro del overlay */
+
 .equipment-item .overlay h3,
 .equipment-item .overlay p {
   max-height: 58px;
@@ -282,7 +282,7 @@ section {
   font-size: 13px;
 }
 
-/* Hover suave (CORREGIDO) */
+
 .equipment-item:hover .overlay {
   opacity: 1;
   background: rgba(0, 0, 0, 0.85);

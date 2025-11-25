@@ -15,7 +15,7 @@
           <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
         </div>
         <div class="user-avatar">
-          <span>👤 {{ session['nombre'] if 'nombre' in session else 'Invitado' }}</span>
+          <span> {{ session['nombre'] if 'nombre' in session else 'Invitado' }}</span>
           <a href="{{ url_for('login_bp.logout') }}" class="logout-btn">Cerrar sesión</a>
         </div>
     </nav>
@@ -30,7 +30,7 @@
           <a href="{{ url_for('equipments_bp.equipreserve') }}">EquipReserve</a>
           {% if session.get("rol") == "admin" %}
           <a href="{{ url_for('admin_bp.admin_panel') }}" class="active" style="color: #ffcc00; font-weight: bold;">
-            🛠 Panel Admin
+             Panel Admin
           </a>
           {% endif %}
         </nav>
@@ -100,9 +100,9 @@
                             <td>{{ row.dvv_registrado }}</td>
                             <td>
                                 {% if row.ok %}
-                                    <span class="badge bg-success p-2">✔ Correcto</span>
+                                    <span class="badge bg-success p-2"> Correcto</span>
                                 {% else %}
-                                    <span class="badge bg-danger p-2">⚠ Alterado</span>
+                                    <span class="badge bg-danger p-2"> Alterado</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -113,14 +113,14 @@
                 {% set fallas = dv_info | selectattr("ok", "equalto", False) | list %}
                 {% if fallas|length > 0 %}
                 <div class="alert alert-danger mt-4">
-                    ⚠ Se detectaron inconsistencias en la integridad. Revisar DVH/DVV o recalcular.
+                     Se detectaron inconsistencias en la integridad. Revisar DVH/DVV o recalcular.
                 </div>
                 {% endif %}
 
                 <hr class="my-4">
                 <form action="/admin/recalcular_todo" method="POST" class="mb-4">
                     <button class="btn btn-danger w-100">
-                        🔁 Recalcular TODAS las tablas
+                         Recalcular TODAS las tablas
                     </button>
                 </form>
                 <table class="table table-sm table-bordered">

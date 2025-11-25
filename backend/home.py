@@ -1,18 +1,17 @@
 from flask import Blueprint, render_template, session, redirect, url_for, flash
 from db import ejecutar_select
-
+\
 home_bp = Blueprint("home_bp", __name__)
-
+\
 @home_bp.route("/home")
 def home():
-
+    \
     if "usuario_id" not in session:
         flash("Debes iniciar sesión primero.", "error")
         return redirect(url_for("login_bp.login"))
-
     usuario_id = session["usuario_id"]
-
-    # 🧪 EXPERIMENTOS DEL USUARIO
+    \
+\
     experimentos = ejecutar_select("""
         SELECT id, titulo, descripcion, fecha_inicio, estado
         FROM experimentos
@@ -21,8 +20,8 @@ def home():
         ORDER BY fecha_inicio DESC
         LIMIT 5
     """, (usuario_id,))
-
-    # 🔬 MUESTRAS DEL USUARIO
+    \
+\
     muestras = ejecutar_select("""
         SELECT id, nombre, tipo, estado, ubicacion
         FROM muestras
@@ -31,8 +30,8 @@ def home():
         ORDER BY fecha_ingreso DESC
         LIMIT 5
     """, (usuario_id,))
-
-    # ⚙️ EQUIPOS RESERVADOS DEL USUARIO
+    \
+\
     equipos = ejecutar_select("""
         SELECT r.id, r.equipo, r.fecha_inicio, r.fecha_fin, r.estado
         FROM reservas_equipos r
@@ -40,10 +39,10 @@ def home():
           AND r.estado_logico = 0
         ORDER BY r.fecha_inicio DESC
     """, (usuario_id,))
-
-    return render_template(
-        "home/Home.html",
-        experimentos=experimentos,
-        muestras=muestras,
-        equipos=equipos
+    \
+    return render_template(\
+        "home/Home.html",\
+        experimentos=experimentos,\
+        muestras=muestras,\
+        equipos=equipos\
     )

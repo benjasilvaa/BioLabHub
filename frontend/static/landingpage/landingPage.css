@@ -25,7 +25,7 @@ body {
   width: auto;
 }
 
-/* Tipografía en negrita para elementos clave */
+
 .navbar, h1, h2 {
   font-weight: bold;
 }
