@@ -38,14 +38,10 @@
 
       <div class="main">
 
-        <h1 class="mb-4 fw-bold">🔶 Panel de Administración</h1>
-
-        <!-- ================================
-            BITÁCORA LOGS
-        ================================= -->
+        <h1 class="mb-4 fw-bold"> Panel de Administración</h1>
         <div class="card mb-5 shadow border-0">
             <div class="card-header bg-dark text-white">
-                <h4 class="mb-0">📜 Bitácora del Sistema</h4>
+                <h4 class="mb-0">Bitácora del Sistema</h4>
             </div>
 
             <div class="card-body table-responsive">
@@ -81,14 +77,9 @@
                 {% endif %}
             </div>
         </div>
-
-
-        <!-- ================================
-            INTEGRIDAD DVH / DVV
-        ================================= -->
         <div class="card shadow border-0">
             <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">🧬 Control de Integridad DVH / DVV</h4>
+                <h4 class="mb-0">Control de Integridad DVH / DVV</h4>
             </div>
 
             <div class="card-body table-responsive">
@@ -127,19 +118,11 @@
                 {% endif %}
 
                 <hr class="my-4">
-
-                <!-- ================================
-                    BOTÓN RECALCULAR TODO
-                ================================= -->
                 <form action="/admin/recalcular_todo" method="POST" class="mb-4">
                     <button class="btn btn-danger w-100">
                         🔁 Recalcular TODAS las tablas
                     </button>
                 </form>
-
-                <!-- ================================
-                    RECALCULAR TABLAS INDIVIDUALES
-                ================================= -->
                 <table class="table table-sm table-bordered">
                     <thead class="table-dark">
                         <tr>
