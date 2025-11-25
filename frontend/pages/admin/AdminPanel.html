@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Administración</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.css">
+</head>
+
+<body class="bg-light">
+
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3">
+        <a class="navbar-brand" href="/home">BioLabHub</a>
+
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+
+                <li class="nav-item">
+                    <a class="nav-link" href="/home">Inicio</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="/equipreserve">Reservas</a>
+                </li>
+
+                <!-- SOLO se muestra si el usuario es admin -->
+                {% if session["rol"] == "admin" %}
+                <li class="nav-item">
+                    <a class="nav-link active" href="/admin">Panel Admin</a>
+                </li>
+                {% endif %}
+
+                <li class="nav-item">
+                    <a class="nav-link" href="/logout">Salir</a>
+                </li>
+
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+
+        <h1 class="mb-4 fw-bold">🔶 Panel de Administración</h1>
+
+        <!-- ================================
+            BITÁCORA LOGS
+        ================================= -->
+        <div class="card mb-5 shadow border-0">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0">📜 Bitácora del Sistema</h4>
+            </div>
+
+            <div class="card-body table-responsive">
+                {% if logs|length == 0 %}
+                    <p class="text-muted text-center">No hay registros en la bitácora.</p>
+                {% else %}
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Tabla</th>
+                            <th>Registro</th>
+                            <th>Fecha</th>
+                            <th>IP Origen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td>{{ log.id }}</td>
+                            <td>{{ log.usuario }}</td>
+                            <td>{{ log.accion }}</td>
+                            <td>{{ log.tabla_afectada }}</td>
+                            <td>{{ log.registro_id }}</td>
+                            <td>{{ log.fecha }}</td>
+                            <td>{{ log.ip_origen }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+        </div>
+
+
+        <!-- ================================
+            INTEGRIDAD DVH / DVV
+        ================================= -->
+        <div class="card shadow border-0">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">🧬 Control de Integridad DVH / DVV</h4>
+            </div>
+
+            <div class="card-body table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Tabla</th>
+                            <th>DVV Real</th>
+                            <th>DVV Registrado</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in dv_info %}
+                        <tr>
+                            <td class="fw-bold">{{ row.tabla }}</td>
+                            <td>{{ row.dvv_real }}</td>
+                            <td>{{ row.dvv_registrado }}</td>
+                            <td>
+                                {% if row.ok %}
+                                    <span class="badge bg-success p-2">✔ Correcto</span>
+                                {% else %}
+                                    <span class="badge bg-danger p-2">⚠ Alterado</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                {% set fallas = dv_info | selectattr("ok", "equalto", False) | list %}
+                {% if fallas|length > 0 %}
+                <div class="alert alert-danger mt-4">
+                    ⚠ Se detectaron inconsistencias en la integridad. Revisar DVH/DVV o recalcular.
+                </div>
+                {% endif %}
+
+                <hr class="my-4">
+
+                <!-- ================================
+                    BOTÓN RECALCULAR TODO
+                ================================= -->
+                <form action="/admin/recalcular_todo" method="POST" class="mb-4">
+                    <button class="btn btn-danger w-100">
+                        🔁 Recalcular TODAS las tablas
+                    </button>
+                </form>
+
+                <!-- ================================
+                    RECALCULAR TABLAS INDIVIDUALES
+                ================================= -->
+                <table class="table table-sm table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Tabla</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in dv_info %}
+                        <tr>
+                            <td>{{ row.tabla }}</td>
+                            <td>
+                                <form action="/admin/recalcular/{{ row.tabla }}" method="POST">
+                                    <button class="btn btn-warning btn-sm">Recalcular</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

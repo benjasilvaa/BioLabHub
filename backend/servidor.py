@@ -5,6 +5,8 @@ from login import login_bp
 from experiments import experiments_bp
 from samples import samples_bp
 from equipments import equipments_bp
+from admin import admin_bp  # <- importa tu blueprint
+
 
 # 🧩 IMPORTANTE → importar SocketIO
 from flask_socketio import SocketIO, emit
@@ -20,6 +22,7 @@ app.secret_key = "clave_super_segura_para_biolabhub"  # Necesaria para sesiones 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Registrar Blueprints
+app.register_blueprint(admin_bp)
 app.register_blueprint(login_bp)
 app.register_blueprint(experiments_bp)
 app.register_blueprint(samples_bp)

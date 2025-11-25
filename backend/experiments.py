@@ -3,6 +3,17 @@ import os
 import sqlite3
 from werkzeug.utils import secure_filename
 
+# 🔐 Importamos funciones de auditoría e integridad
+from db import (
+    registrar_auditoria,
+    calcular_dvh,
+    recalcular_dvv,
+    ejecutar_select,
+    ejecutar_insert,
+    ejecutar_update,
+    conectar_bd as conectar_principal_bd
+)
+
 experiments_bp = Blueprint("experiments_bp", __name__, url_prefix="/experiments")
 
 # Ruta donde se guardan archivos
@@ -14,7 +25,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 
 # ---------------------------
-#  FUNCIONES DE BASE DE DATOS
+#  FUNCIONES DE BASE DE DATOS (internas)
 # ---------------------------
 
 def conectar_bd():
@@ -85,15 +96,54 @@ def add_experiment():
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO experimentos 
-        (titulo, descripcion, fecha_inicio, fecha_fin, estado, responsable_id, protocolo_archivo)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (titulo, descripcion, fecha_inicio, fecha_fin, estado, responsable, archivo_nombre))
+        (titulo, descripcion, fecha_inicio, fecha_fin, estado, responsable_id, protocolo_archivo, dvh)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        titulo,
+        descripcion,
+        fecha_inicio,
+        fecha_fin,
+        estado,
+        responsable,
+        archivo_nombre,
+        0  # placeholder
+    ))
     conn.commit()
 
     nuevo_id = cur.lastrowid
     conn.close()
 
-    # 🎯 WebSocket: IMPORT LOCAL para evitar import circular
+    # 🧮 Recalcular DVH del nuevo registro
+    datos_experimento = {
+        "titulo": titulo,
+        "descripcion": descripcion,
+        "fecha_inicio": fecha_inicio,
+        "fecha_fin": fecha_fin,
+        "estado": estado,
+        "responsable_id": responsable,
+        "protocolo_archivo": archivo_nombre
+    }
+    dvh_nuevo = sum(len(str(v)) for v in datos_experimento.values())
+
+    conn = conectar_bd()
+    cur = conn.cursor()
+    cur.execute("UPDATE experimentos SET dvh = ? WHERE id = ?", (dvh_nuevo, nuevo_id))
+    conn.commit()
+    conn.close()
+
+    # 🔄 Actualizar DVV
+    recalcular_dvv("experimentos")
+
+    # 📝 Registrar auditoría
+    registrar_auditoria(
+        usuario_id=session.get("usuario_id"),
+        accion="CREAR EXPERIMENTO",
+        tabla="experimentos",
+        registro_id=nuevo_id,
+        ip_origen=request.remote_addr
+    )
+
+    # 🎯 WebSocket
     from servidor import socketio
     socketio.emit("experiment_event", f"🧪 Nuevo experimento creado: {titulo}")
 
@@ -115,12 +165,24 @@ def delete_experiment(id):
     row = cur.fetchone()
     titulo = row["titulo"] if row else "(desconocido)"
 
-    # Eliminar experimento
-    cur.execute("DELETE FROM experimentos WHERE id = ?", (id,))
+    # Borrado lógico (si querés mantener DVH)
+    cur.execute("UPDATE experimentos SET estado_logico = 1 WHERE id = ?", (id,))
     conn.commit()
     conn.close()
 
-    # 🎯 WebSocket (import local)
+    # DVV se actualiza igual
+    recalcular_dvv("experimentos")
+
+    # Auditoría
+    registrar_auditoria(
+        usuario_id=session.get("usuario_id"),
+        accion="BORRAR EXPERIMENTO",
+        tabla="experimentos",
+        registro_id=id,
+        ip_origen=request.remote_addr
+    )
+
+    # 🎯 WebSocket
     from servidor import socketio
     socketio.emit("experiment_event", f"🗑️ Experimento eliminado: {titulo}")
 
@@ -148,6 +210,7 @@ def experiments_events():
     cur.execute("""
         SELECT id, titulo, descripcion, fecha_inicio, fecha_fin
         FROM experimentos
+        WHERE estado_logico = 0 OR estado_logico IS NULL
     """)
     rows = cur.fetchall()
     conn.close()

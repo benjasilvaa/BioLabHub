@@ -33,6 +33,11 @@
         <a href="{{ url_for('experiments_bp.experiments') }}">Experiment Planner</a>
         <a href="{{ url_for('reagents') }}">ReagentVault</a>
         <a href="{{ url_for('equipments_bp.equipreserve') }}">EquipReserve</a>
+        {% if session.get("rol") == "admin" %}
+        <a href="{{ url_for('admin_bp.admin_panel') }}" style="color: #ffcc00; font-weight: bold;">
+          🛠 Panel Admin
+        </a>
+        {% endif %}
       </nav>
     </div>
 
