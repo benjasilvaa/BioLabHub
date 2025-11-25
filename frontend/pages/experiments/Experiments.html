@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Experiment Planner - BioLabHub</title>
+  <title>Experiment Planner | BIOLABHUB</title>
+  <link rel="icon" href="{{ url_for('static', filename='assets/LOGO-SOLO.ico') }}" type="image/png">
   <link rel="stylesheet" href="{{ url_for('static', filename='experiments/Experiments.css') }}">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
 </head>
 
 <body>
-  <!-- Navbar -->
   <nav class="navbar">
     <div class="logo-container">
       <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
@@ -21,7 +21,6 @@
   </nav>
 
   <div class="content">
-    <!-- Sidebar -->
     <div class="sidebar">
       <nav>
         <a href="{{ url_for('home') }}">Inicio</a>
@@ -29,10 +28,14 @@
         <a href="{{ url_for('experiments_bp.experiments') }}" class="active">Experiment Planner</a>
         <a href="{{ url_for('reagents') }}">ReagentVault</a>
         <a href="{{ url_for('equipments_bp.equipreserve') }}">EquipReserve</a>
+        {% if session.get("rol") == "admin" %}
+        <a href="{{ url_for('admin_bp.admin_panel') }}" style="color: #ffcc00; font-weight: bold;">
+          🛠 Panel Admin
+        </a>
+        {% endif %}
       </nav>
     </div>
 
-    <!-- Main content -->
     <div class="main">
       <section class="planner">
         <h1>ExperimentPlanner – Planificación de Experimentos</h1>
@@ -45,7 +48,6 @@
           {% endif %}
         {% endwith %}
 
-        <!-- Formulario de creación -->
         <form class="form-nuevo" method="POST" action="{{ url_for('experiments_bp.add_experiment') }}" enctype="multipart/form-data">
           <h2>🧪 Nuevo Experimento</h2>
           <div class="form-row">
@@ -97,7 +99,6 @@
           <button type="submit" class="btn-crear">Crear experimento</button>
         </form>
 
-        <!-- Tabla de experimentos -->
         <h2 class="titulo-lista">📋 Experimentos Registrados</h2>
         {% if experimentos %}
           <table class="tabla-experimentos">

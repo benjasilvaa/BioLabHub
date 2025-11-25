@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EquipReserve - BioLabHub</title>
+  <title>EquipReserve | BIOLABHUB</title>
+  <link rel="icon" href="{{ url_for('static', filename='assets/LOGO-SOLO.ico') }}" type="image/png">
   <link rel="stylesheet" href="{{ url_for('static', filename='equipreserve/EquipReserve.css') }}">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
 </head>
@@ -27,6 +28,11 @@
         <a href="{{ url_for('experiments_bp.experiments') }}">Experiment Planner</a>
         <a href="{{ url_for('reagents') }}">ReagentVault</a>
         <a href="{{ url_for('equipments_bp.equipreserve') }}" class="active">EquipReserve</a>
+        {% if session.get("rol") == "admin" %}
+        <a href="{{ url_for('admin_bp.admin_panel') }}" style="color: #ffcc00; font-weight: bold;">
+          🛠 Panel Admin
+        </a>
+        {% endif %}
       </nav>
     </div>
 

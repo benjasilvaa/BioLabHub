@@ -3,16 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BioLabHub - Home</title>
-
-  <!-- Carga el CSS desde la carpeta static -->
+  <title>Home | BIOLABHUB</title>
+  <link rel="icon" href="{{ url_for('static', filename='assets/LOGO-SOLO.ico') }}" type="image/png">
   <link rel="stylesheet" href="{{ url_for('static', filename='home/Home.css') }}" />
 </head>
 
-
-
 <body>
-  <!-- Navbar superior -->
   <nav class="navbar">
     <div class="logo-container">
       <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
@@ -23,9 +19,7 @@
     </div>
   </nav>
 
-  <!-- Contenedor general -->
   <div class="content">
-    <!-- Sidebar de navegación -->
     <div class="sidebar">
       <nav>
         <a href="{{ url_for('home') }}">Inicio</a>
@@ -41,10 +35,7 @@
       </nav>
     </div>
 
-    <!-- Contenido principal -->
     <div class="main">
-
-      <!-- Sección de experimentos -->
       <section class="experiments">
         <h2>TUS EXPERIMENTOS</h2>
         <div class="experiment-list">
@@ -65,7 +56,6 @@
         </div>
       </section>
 
-      <!-- Sección de equipos -->
       <section class="equipment">
         <h2>EQUIPOS RESERVADOS</h2>
         <div class="equipment-list">
