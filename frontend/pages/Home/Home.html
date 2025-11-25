@@ -9,6 +9,7 @@
 </head>
 
 <body>
+  <!-- NAVBAR -->
   <nav class="navbar">
     <div class="logo-container">
       <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
@@ -20,10 +21,10 @@
   </nav>
 
   <div class="content">
-    <!-- Sidebar de navegación -->
+    <!-- SIDEBAR -->
     <div class="sidebar">
       <nav>
-        <a href="{{ url_for('home_bp.home') }}">Inicio</a>
+        <a href="{{ url_for('home_bp.home') }}" class="active">Inicio</a>
         <a href="{{ url_for('samples_bp.samples') }}">SampleTrack</a>
         <a href="{{ url_for('experiments_bp.experiments') }}">Experiment Planner</a>
         <a href="{{ url_for('reagents') }}">ReagentVault</a>
@@ -36,7 +37,85 @@
       </nav>
     </div>
 
+    <!-- CONTENIDO PRINCIPAL -->
     <div class="main">
+
+      <!-- BIENVENIDA -->
+      <section class="welcome">
+        <h1>Hola {{ session['nombre'] }}, bienvenido a BioLabHub 🔬</h1>
+        <p class="desc">
+          Tu centro de control para gestionar muestras, experimentos, reactivos y reservas de equipos.
+        </p>
+
+        <!-- Estadísticas principales -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h2>{{ 0 }}</h2>
+            <p>Experimentos activos</p>
+          </div>
+          <div class="stat-card">
+            <h2>{{ 0}}</h2>
+            <p>Reservas de equipos</p>
+          </div>
+          <div class="stat-card">
+            <h2>{{ 0 }}</h2>
+            <p>Muestras registradas</p>
+          </div>
+          <div class="stat-card">
+            <h2>{{ 0 }}</h2>
+            <p>Reactivos a reponer</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ACCESOS RÁPIDOS -->
+      <section class="quick-access">
+        <h2>Accesos rápidos</h2>
+        <div class="qa-grid">
+
+          <a href="{{ url_for('samples_bp.samples') }}" class="qa-item">
+            <img src="{{ url_for('static', filename='assets/icon-sample.png') }}">
+            <h3>Registrar muestra</h3>
+          </a>
+
+          <a href="{{ url_for('experiments_bp.experiments') }}" class="qa-item">
+            <img src="{{ url_for('static', filename='assets/icon-experiment.png') }}">
+            <h3>Nuevo experimento</h3>
+          </a>
+
+          <a href="{{ url_for('reagents') }}" class="qa-item">
+            <img src="{{ url_for('static', filename='assets/icon-chem.png') }}">
+            <h3>Revisar reactivos</h3>
+          </a>
+
+          <a href="{{ url_for('equipments_bp.equipreserve') }}" class="qa-item">
+            <img src="{{ url_for('static', filename='assets/icon-microscope.png') }}">
+            <h3>Reservar equipo</h3>
+          </a>
+
+        </div>
+      </section>
+
+      <!-- ACTIVIDAD RECIENTE -->
+      <section class="activity">
+        <h2>Tu actividad reciente</h2>
+        <ul class="activity-list">
+
+          {% if actividad %}
+            {% for item in actividad %}
+              <li>
+                <span class="icon">✔</span>
+                <p>{{ item }}</p>
+              </li>
+            {% endfor %}
+          {% else %}
+            <p>No registras actividad reciente.</p>
+          {% endif %}
+
+        </ul>
+      </section>
+
+      <!-- TUS EXPERIMENTOS -->
       <section class="experiments">
         <h2>TUS EXPERIMENTOS</h2>
         <div class="experiment-list">
@@ -60,6 +139,7 @@
         </div>
       </section>
 
+      <!-- EQUIPOS RESERVADOS -->
       <section class="equipment">
         <h2>EQUIPOS RESERVADOS</h2>
         <div class="equipment-list">
@@ -81,6 +161,17 @@
           {% endif %}
 
         </div>
+      </section>
+
+      <!-- NOVEDADES -->
+      <section class="news">
+        <h2>Novedades del laboratorio 🧪</h2>
+        <ul class="news-list">
+          <li>📌 Nuevo lote de reactivos cargado en ReagentVault.</li>
+          <li>⚠ Actualización: algunos equipos están en mantenimiento.</li>
+          <li>🧬 Agregado soporte para historial de muestras.</li>
+          <li>🔧 Mejoras en seguridad y auditoría del sistema.</li>
+        </ul>
       </section>
 
     </div>
