@@ -2,43 +2,41 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Panel de Administración</title>
+    <title>Panel de Administración | BIOLABHUB</title>
+    <link rel="icon" href="{{ url_for('static', filename='assets/LOGO-SOLO.ico') }}" type="image/png">
     <link rel="stylesheet" href="/static/css/bootstrap.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin/AdminPanel.css') }}">
 </head>
 
-<body class="bg-light">
+<body>
 
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3">
-        <a class="navbar-brand" href="/home">BioLabHub</a>
-
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav ms-auto">
-
-                <li class="nav-item">
-                    <a class="nav-link" href="/home">Inicio</a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="/equipreserve">Reservas</a>
-                </li>
-
-                <!-- SOLO se muestra si el usuario es admin -->
-                {% if session["rol"] == "admin" %}
-                <li class="nav-item">
-                    <a class="nav-link active" href="/admin">Panel Admin</a>
-                </li>
-                {% endif %}
-
-                <li class="nav-item">
-                    <a class="nav-link" href="/logout">Salir</a>
-                </li>
-
-            </ul>
+    <nav class="navbar">
+        <div class="logo-container">
+          <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
+        </div>
+        <div class="user-avatar">
+          <span>👤 {{ session['nombre'] if 'nombre' in session else 'Invitado' }}</span>
+          <a href="{{ url_for('login_bp.logout') }}" class="logout-btn">Cerrar sesión</a>
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <div class="content">
+      <div class="sidebar">
+        <nav>
+          <a href="{{ url_for('home_bp.home') }}">Inicio</a>
+          <a href="{{ url_for('samples_bp.samples') }}">SampleTrack</a>
+          <a href="{{ url_for('experiments_bp.experiments') }}">Experiment Planner</a>
+          <a href="{{ url_for('reagents') }}">ReagentVault</a>
+          <a href="{{ url_for('equipments_bp.equipreserve') }}">EquipReserve</a>
+          {% if session.get("rol") == "admin" %}
+          <a href="{{ url_for('admin_bp.admin_panel') }}" class="active" style="color: #ffcc00; font-weight: bold;">
+            🛠 Panel Admin
+          </a>
+          {% endif %}
+        </nav>
+      </div>
+
+      <div class="main">
 
         <h1 class="mb-4 fw-bold">🔶 Panel de Administración</h1>
 
@@ -166,6 +164,7 @@
             </div>
         </div>
 
+      </div>
     </div>
 
 </body>

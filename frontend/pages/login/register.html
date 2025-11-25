@@ -3,11 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <title>Registro</title>
+  <link rel="icon" href="{{ url_for('static', filename='assets/LOGO-SOLO.ico') }}" type="image/png">
   <link rel="stylesheet" href="{{ url_for('static', filename='login/login.css') }}">
 </head>
 
 <body>
   <div class="login-container">
+    <div class="login-logo">
+      <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
+    </div>
     <h2>Crear cuenta</h2>
 
     {% with mensajes = get_flashed_messages(with_categories=true) %}

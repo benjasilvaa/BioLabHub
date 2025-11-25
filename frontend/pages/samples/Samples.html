@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SampleTrack - BioLabHub</title>
+  <title>SampleTrack | BIOLABHUB</title>
+  <link rel="icon" href="{{ url_for('static', filename='assets/LOGO-SOLO.ico') }}" type="image/png">
   <link rel="stylesheet" href="{{ url_for('static', filename='samples/Samples.css') }}">
 
   <style>
@@ -48,7 +49,7 @@
       <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
     </div>
     <div class="user-avatar">
-      <span>👤 {{ session['nombre'] }}</span>
+      <span>👤 {{ session['nombre'] if 'nombre' in session else 'Invitado' }}</span>
       <a href="{{ url_for('login_bp.logout') }}" class="logout-btn">Cerrar sesión</a>
     </div>
   </nav>
@@ -62,9 +63,13 @@
         <a href="{{ url_for('experiments_bp.experiments') }}">Experiment Planner</a>
         <a href="{{ url_for('reagents') }}">ReagentVault</a>
         <a href="{{ url_for('equipments_bp.equipreserve') }}">EquipReserve</a>
+        {% if session.get("rol") == "admin" %}
+        <a href="{{ url_for('admin_bp.admin_panel') }}" style="color: #ffcc00; font-weight: bold;">
+          🛠 Panel Admin
+        </a>
+        {% endif %}
       </nav>
     </div>
-
     <!-- Contenido principal -->
     <div class="main">
       <h1>🧫 SampleTrack – Seguimiento de Muestras</h1>
@@ -173,7 +178,6 @@
       <div id="eventos" class="eventos"></div>
     </div>
   </div>
-
   <!-- SOCKET.IO -->
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="/static/socket.js"></script>
