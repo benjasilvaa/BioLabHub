@@ -49,7 +49,8 @@ def login():
             recalcular_dvv("usuarios")
 
             flash(f"Bienvenido {usuario['nombre']} 👋", "success")
-            return redirect(url_for("home"))
+            return redirect(url_for("home_bp.home"))
+
         else:
             # LOGIN FALLIDO
             registrar_auditoria(None, "LOGIN FALLIDO", "usuarios", 0, request.remote_addr)

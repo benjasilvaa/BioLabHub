@@ -5,6 +5,7 @@
   font-family: Arial, sans-serif;
 }
 
+/* NAVBAR SUPERIOR */
 .navbar {
   width: 100%;
   background-color: #22a6b3;
@@ -20,55 +21,64 @@
 }
 
 .logo-container img {
-  height: 60px;
+  height: 55px;
   width: auto;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.3));
 }
 
+/* Avatar + nombre */
 .user-avatar {
-  width: 45px;
-  height: 45px;
-  background-color: #ccc;
-  border-radius: 50%;
-  border: 2px solid white;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
+.user-avatar span {
+  font-size: 15px;
+  font-weight: bold;
+  color: #fff;
+}
+
+/* Botón cerrar sesión */
+.logout-btn {
+  padding: 6px 12px;
+  background-color: #ff4d4d;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: background-color 0.25s ease;
+}
+
+.logout-btn:hover {
+  background-color: #e84343;
+}
+
+/* CONTENIDO GENERAL */
 .content {
   display: flex;
   margin-top: 70px;
-  background-color: #ccc;
+  background-color: #e6e6e6;
+  min-height: calc(100vh - 70px);
 }
 
+/* SIDEBAR IZQUIERDO */
 .sidebar {
   width: 220px;
   background: linear-gradient(180deg, #215a68 0%, #1b4c58 100%);
   color: #fff;
   display: flex;
   flex-direction: column;
-  padding: 16px 12px;
-  min-height: calc(100vh - 70px);
+  padding: 18px 12px;
   border-top-right-radius: 12px;
   border-bottom-right-radius: 12px;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.12);
 }
 
-.logo {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 40px;
-}
-
-.logo img {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-}
-
 .sidebar nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .sidebar nav a {
@@ -80,39 +90,43 @@
   border-radius: 10px;
   font-weight: 600;
   letter-spacing: 0.2px;
-  transition: background-color 0.2s ease, transform 0.15s ease;
+  transition: background-color 0.25s ease, transform 0.12s ease;
 }
 
 .sidebar nav a:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  transform: translateX(2px);
+  background-color: rgba(255, 255, 255, 0.12);
+  transform: translateX(3px);
 }
 
 .sidebar nav a.active {
-  background-color: rgba(255, 255, 255, 0.16);
+  background-color: rgba(255, 255, 255, 0.18);
 }
 
+/* CONTENIDO PRINCIPAL */
 .main {
   flex: 1;
-  padding: 20px;
+  padding: 20px 30px;
 }
 
 section {
   background-color: #fff;
-  padding: 15px;
-  margin-bottom: 20px;
-  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 22px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .experiments h2,
 .equipment h2 {
   margin-bottom: 15px;
+  font-size: 20px;
 }
 
-/*Experimentos*/
+/* EXPERIMENTOS */
 .experiment-list {
   display: flex;
   gap: 15px;
+  flex-wrap: wrap;
 }
 
 .experiment {
@@ -120,15 +134,20 @@ section {
   width: 250px;
   height: 175px;
   overflow: hidden;
-  border-radius: 5px;
+  border-radius: 10px;
   cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+  transition: transform 0.25s ease;
+}
+
+.experiment:hover {
+  transform: scale(1.03);
 }
 
 .experiment img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 }
 
 .experiment .overlay {
@@ -136,7 +155,7 @@ section {
   bottom: 0;
   width: 100%;
   height: 45px;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.65);
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -166,49 +185,69 @@ section {
   display: block;
 }
 
+/* EQUIPOS RESERVADOS */
 .equipment-list {
   display: flex;
   gap: 15px;
+  flex-wrap: wrap;
 }
 
-/*equipos*/
 .equipment-item {
   position: relative;
-  width: 150px;
-  height: 150px;
+  width: 160px;
+  height: 160px;
   overflow: hidden;
-  border-radius: 5px;
+  border-radius: 10px;
   cursor: pointer;
+  background: #eee;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+  transition: transform 0.25s ease;
+}
+
+.equipment-item:hover {
+  transform: scale(1.05);
 }
 
 .equipment-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 }
 
+/* ---- OVERLAY MODIFICADO ---- */
 .equipment-item .overlay {
   position: absolute;
-  bottom: 0;
-  width: 100%;
-  height: 40px;
-  background: rgba(0, 0, 0, 0.7);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
   color: #fff;
+  opacity: 0;
+  padding: 12px;
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  align-items: center;
-  text-align: center;
-  transition: height 0.4s ease, background 0.4s ease;
+  text-align: left;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Texto ordenado dentro del overlay */
+.equipment-item .overlay h3,
+.equipment-item .overlay p {
+  max-height: 58px;
+  overflow: hidden;
+  line-height: 1.25;
+  margin-bottom: 6px;
 }
 
 .equipment-item .overlay h3 {
-  margin: 0;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: bold;
 }
 
+.equipment-item .overlay p {
+  font-size: 13px;
+}
+
+/* Hover suave */
 .equipment-item:hover .overlay {
-  height: 100%;
-  background: rgba(0, 0, 0, 0.85);
+  opacity: 1;
 }
-

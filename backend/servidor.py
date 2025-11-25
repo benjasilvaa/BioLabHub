@@ -5,7 +5,9 @@ from login import login_bp
 from experiments import experiments_bp
 from samples import samples_bp
 from equipments import equipments_bp
-from admin import admin_bp  # <- importa tu blueprint
+from admin import admin_bp
+from home import home_bp
+  # <- importa tu blueprint
 
 
 # 🧩 IMPORTANTE → importar SocketIO
@@ -22,6 +24,7 @@ app.secret_key = "clave_super_segura_para_biolabhub"  # Necesaria para sesiones 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Registrar Blueprints
+app.register_blueprint(home_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(login_bp)
 app.register_blueprint(experiments_bp)
@@ -37,13 +40,6 @@ def index():
     return redirect(url_for("login_bp.login"))
 
 
-# 🏠 Página principal (Home)
-@app.route("/home")
-def home():
-    if "usuario_id" not in session:
-        flash("Debes iniciar sesión primero.", "error")
-        return redirect(url_for("login_bp.login"))
-    return render_template("home/Home.html")
 
 
 # ⚙️ Rutas base de ejemplo para futuros módulos
