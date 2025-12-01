@@ -3,11 +3,8 @@ from sqlite3 import Error
 import os
 from datetime import datetime
 import bcrypt
-\
-\
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "biolabhub.db")
-\
 def conectar_bd():
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -18,10 +15,6 @@ def conectar_bd():
 def crear_bd():
     conn = conectar_bd()
     cursor = conn.cursor()
-    \
-\
-\
-\
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,7 +28,6 @@ def crear_bd():
             ultima_sesion TIMESTAMP
         )
     """)
-    \
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS audits_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,7 +41,6 @@ def crear_bd():
             FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
         )
     """)
-    \
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS muestras (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,7 +55,6 @@ def crear_bd():
             FOREIGN KEY (responsable_id) REFERENCES usuarios(id)
         )
     """)
-    \
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS reactivos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,7 +68,6 @@ def crear_bd():
             FOREIGN KEY (responsable_id) REFERENCES usuarios(id)
         )
     """)
-    \
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS experimentos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -94,7 +83,6 @@ def crear_bd():
             FOREIGN KEY (responsable_id) REFERENCES usuarios(id)
         )
     """)
-    \
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS laboratorios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -129,20 +117,13 @@ def crear_bd():
             dvh INTEGER
         )
     """)
-    \
-\
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS verificaciones_verticales (
             tabla TEXT PRIMARY KEY,
             dvv INTEGER
         )
     """)
-    \
     conn.commit()
-    \
-\
-\
-\
     def asegurar_columna(tabla, columna, tipo):
         cursor.execute(f"PRAGMA table_info({tabla})")
         columnas_existentes = [col[1] for col in cursor.fetchall()]
@@ -157,44 +138,41 @@ def crear_bd():
     asegurar_columna("experimentos", "protocolo_archivo", "TEXT")
     asegurar_columna("usuarios", "ultima_sesion", "TIMESTAMP")
     asegurar_columna("muestras", "fecha_ingreso", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    \
-\
     cursor.execute("SELECT COUNT(*) FROM equipos")
     if cursor.fetchone()[0] == 0:
-        equipos_iniciales = [\
-            ("Centrífuga Eppendorf 5424R", "Centrífuga", "Laboratorio Químico", "Disponible"),\
-            ("Microscopio Leica DM750", "Microscopio", "Laboratorio de Microbiología", "Disponible"),\
-            ("Espectrofotómetro NanoDrop 2000", "Medición", "Laboratorio de Biología Molecular", "Disponible"),\
-            ("Cabina de Seguridad Biológica", "Seguridad", "Laboratorio de Biología Molecular", "Disponible"),\
-            ("Freezer -80°C", "Almacenamiento", "Cámara Fría", "Disponible"),\
+        equipos_iniciales = [
+            ("Centrífuga Eppendorf 5424R", "Centrífuga", "Laboratorio Químico", "Disponible"),
+            ("Microscopio Leica DM750", "Microscopio", "Laboratorio de Microbiología", "Disponible"),
+            ("Espectrofotómetro NanoDrop 2000", "Medición", "Laboratorio de Biología Molecular", "Disponible"),
+            ("Cabina de Seguridad Biológica", "Seguridad", "Laboratorio de Biología Molecular", "Disponible"),
+            ("Freezer -80°C", "Almacenamiento", "Cámara Fría", "Disponible"),
         ]
         cursor.executemany("INSERT INTO equipos (nombre, categoria, ubicacion, estado) VALUES (?, ?, ?, ?)", equipos_iniciales)
         print("Equipos base insertados.")
     cursor.execute("SELECT COUNT(*) FROM laboratorios")
     if cursor.fetchone()[0] == 0:
-        labs_iniciales = [\
-            ("Laboratorio de Microbiología", "Planta Baja"),\
-            ("Laboratorio Químico", "1° Piso"),\
-            ("Laboratorio de Biología Molecular", "2° Piso"),\
-            ("Cámara Fría", "Subsuelo"),\
-            ("Depósito de Muestras", "Planta Baja"),\
-            ("Área de Preparación", "Planta Alta"),\
-            ("Sala de Esterilización", "1° Piso")\
+        labs_iniciales = [
+            ("Laboratorio de Microbiología", "Planta Baja"),
+            ("Laboratorio Químico", "1° Piso"),
+            ("Laboratorio de Biología Molecular", "2° Piso"),
+            ("Cámara Fría", "Subsuelo"),
+            ("Depósito de Muestras", "Planta Baja"),
+            ("Área de Preparación", "Planta Alta"),
+            ("Sala de Esterilización", "1° Piso")
         ]
         cursor.executemany("INSERT INTO laboratorios (nombre, ubicacion) VALUES (?, ?)", labs_iniciales)
         print("Laboratorios base insertados.")
     cursor.execute("SELECT * FROM usuarios WHERE rol = 'admin'")
     admin_existente = cursor.fetchone()
-    \
     if not admin_existente:
         contraseña = b"admin123"                            
         hash_admin = bcrypt.hashpw(contraseña, bcrypt.gensalt()).decode("utf-8")
-        datos_admin = {\
-            "nombre": "Administrador",\
-            "email": "admin@biolabhub.com",\
-            "contraseña_hash": hash_admin,\
-            "rol": "admin",\
-            "estado_logico": 0\
+        datos_admin = {
+            "nombre": "Administrador",
+            "email": "admin@biolabhub.com",
+            "contraseña_hash": hash_admin,
+            "rol": "admin",
+            "estado_logico": 0
         }
         dvh_admin = calcular_dvh(datos_admin)
         cursor.execute(
@@ -219,13 +197,27 @@ def calcular_dvh(datos):
 def recalcular_dvv(tabla):
     conexion = conectar_bd()
     cursor = conexion.cursor()
-    cursor.execute(f"SELECT dvh FROM {tabla} WHERE dvh IS NOT NULL")
+
+    # Detectar si la tabla tiene columna estado_logico
+    cursor.execute(f"PRAGMA table_info({tabla})")
+    columnas = [col[1] for col in cursor.fetchall()]
+
+    if "estado_logico" in columnas:
+        cursor.execute(f"SELECT dvh FROM {tabla} WHERE dvh IS NOT NULL AND estado_logico = 0")
+    else:
+        cursor.execute(f"SELECT dvh FROM {tabla} WHERE dvh IS NOT NULL")
+
     suma = sum(fila[0] for fila in cursor.fetchall())
+
     cursor.execute("SELECT dvv FROM verificaciones_verticales WHERE tabla=?", (tabla,))
     if cursor.fetchone():
         cursor.execute("UPDATE verificaciones_verticales SET dvv=? WHERE tabla=?", (suma, tabla))
     else:
-        cursor.execute("INSERT INTO verificaciones_verticales (tabla, dvv) VALUES (?, ?)", (tabla, suma))
+        cursor.execute(
+            "INSERT INTO verificaciones_verticales (tabla, dvv) VALUES (?, ?)",
+            (tabla, suma),
+        )
+
     conexion.commit()
     conexion.close()
 def ejecutar_select(query, parametros=()):
@@ -250,19 +242,17 @@ def ejecutar_update(query, parametros=()):
     conn.commit()
     conn.close()
 def registrar_auditoria(usuario_id, accion, tabla, registro_id, ip_origen):
-    datos = {\
-        "usuario_id": usuario_id,\
-        "accion": accion,\
-        "tabla_afectada": tabla,\
-        "registro_id": registro_id,\
-        "fecha": datetime.now(),\
-        "ip_origen": ip_origen\
+    datos = {
+        "usuario_id": usuario_id,
+        "accion": accion,
+        "tabla_afectada": tabla,
+        "registro_id": registro_id,
+        "fecha": datetime.now(),
+        "ip_origen": ip_origen
     }
     dvh = calcular_dvh(datos)
-    \
     query = """INSERT INTO audits_logs 
                (usuario_id, accion, tabla_afectada, registro_id, fecha, ip_origen, dvh)
                VALUES (?, ?, ?, ?, ?, ?, ?)"""
-    \
     ejecutar_insert(query, (usuario_id, accion, tabla, registro_id, datetime.now(), ip_origen, dvh))
     recalcular_dvv("audits_logs")

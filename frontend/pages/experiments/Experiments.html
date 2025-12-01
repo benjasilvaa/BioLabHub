@@ -11,18 +11,19 @@
     .side-modal {
       position: fixed;
       top: 70px;
-      right: -520px;
+      right: 0;
       width: 520px;
       height: calc(100vh - 90px);
       background: #fff;
       box-shadow: -6px 0 30px rgba(0,0,0,0.12);
       border-left: 1px solid #e6e9ee;
-      transition: right 0.28s ease;
+      transform: translateX(100%);
+      transition: transform 0.28s ease;
       z-index: 1001;
       padding: 1.2rem;
       overflow-y: auto;
     }
-    .side-modal.open { right: 0; }
+    .side-modal.open { transform: translateX(0); }
     .side-modal .close-btn {
       display: inline-block;
       background: #e53935;
@@ -194,7 +195,7 @@
                     
                     <button class="btn-editar" data-id="{{ exp['id'] }}">Editar</button>
 
-                    <form method="GET" action="{{ url_for('experiments_bp.delete_experiment', id=exp['id']) }}" onsubmit="return confirm('¿Eliminar este experimento?');" style="display:inline;">
+                    <form method="POST" action="{{ url_for('experiments_bp.delete_experiment', id=exp['id']) }}" onsubmit="return confirm('¿Eliminar este experimento?');" style="display:inline;">
                       <button class="btn-eliminar" type="submit">Eliminar</button>
                     </form>
                   </div>

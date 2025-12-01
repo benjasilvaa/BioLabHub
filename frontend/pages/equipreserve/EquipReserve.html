@@ -47,7 +47,7 @@
         {% endif %}
       {% endwith %}
 
-      <form class="form-nuevo" method="POST" action="{{ url_for('equipments_bp.add_reserva') }}">
+      <form class="form-nuevo" method="POST" action="{{ url_for('equipments_bp.create_reservation') }}">
         <h2> Nueva Reserva</h2>
 
         <label>Equipo:</label>
@@ -121,8 +121,8 @@
           if (userRol === "admin" || creador == userId) {
             let buttons = document.createElement("div");
             buttons.innerHTML = `
-              <button class="edit-btn" onclick="editarReserva('${ rid }')"></button>
-              <button class="delete-btn" onclick="eliminarReserva('${ rid }')"></button>
+              <button class="edit-btn" onclick="editarReserva('${ rid }')">✏️</button>
+              <button class="delete-btn" onclick="eliminarReserva('${ rid }')">❌</button>
             `;
             buttons.classList.add("event-buttons");
             info.el.appendChild(buttons);

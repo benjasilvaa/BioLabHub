@@ -7,14 +7,10 @@ from samples import samples_bp
 from equipments import equipments_bp
 from admin import admin_bp
 from home import home_bp
-
 from flask_socketio import SocketIO, emit
-
 # 🟦 NUEVO: para usar hilos
 from threading import Thread
 import time   # opcional, para simular tareas largas
-
-
 # ========================================
 #  FLASK + SOCKET.IO
 # ========================================
@@ -23,32 +19,18 @@ app = Flask(
     template_folder="../frontend/pages",
     static_folder="../frontend/static"
 )
-
 app.secret_key = "clave_super_segura_para_biolabhub"
-
 socketio = SocketIO(app, cors_allowed_origins="*")
-
-
 def lanzar_tarea_en_segundo_plano(func, *args, **kwargs):
     hilo = Thread(target=func, args=args, kwargs=kwargs, daemon=True)
     hilo.start()
     return hilo
-
-
-
 app.register_blueprint(home_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(login_bp)
 app.register_blueprint(experiments_bp)
 app.register_blueprint(samples_bp)
 app.register_blueprint(equipments_bp)
-
-
-
-
-
-
-
 # ========================================
 #  RUTAS PRINCIPALES
 # ========================================
@@ -57,36 +39,26 @@ def index():
     if "usuario_id" in session:
         return redirect(url_for("home_bp.home"))
     return render_template("landingpage/landingpage.html")
-
-
 @app.route("/equipment")
 def equipment():
     if "usuario_id" not in session:
         flash("Debes iniciar sesión primero.", "error")
         return redirect(url_for("login_bp.login"))
     return "<h2>Página de Equipos (en construcción)</h2>"
-
-
 @app.route("/reagents")
 def reagents():
     if "usuario_id" not in session:
         flash("Debes iniciar sesión primero.", "error")
         return redirect(url_for("login_bp.login"))
     return "<h2>Página de Reactivos (en construcción)</h2>"
-
-
 # WebSocket events
 @socketio.on("connect")
 def handle_connect():
     print(" Cliente conectado vía WebSocket")
     emit("server_message", {"msg": "Conectado al WebSocket de BioLabHub!"})
-
-
 @socketio.on("disconnect")
 def handle_disconnect():
     print(" Cliente desconectado")
-
-
 # ========================================
 #  MAIN: CREAR BD Y LEVANTAR SERVIDOR
 # ========================================
@@ -96,5 +68,4 @@ if __name__ == "__main__":
         crear_bd()
     else:
         print(" Base de datos encontrada.")
-
     socketio.run(app, debug=True)
