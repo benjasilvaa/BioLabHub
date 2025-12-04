@@ -1,9 +1,8 @@
 import sqlite3
-from flask import Blueprint, render_template, session, redirect, url_for, flash, request
-from db import ejecutar_select, recalcular_dvv, conectar_bd, calcular_dvh
+from flask import Blueprint, render_template, session, redirect, url_for, flash, request, jsonify
+from db import ejecutar_select, recalcular_dvv, conectar_bd, calcular_dvh, registrar_auditoria
 
 admin_bp = Blueprint("admin_bp", __name__, url_prefix="/admin")
-
 
 
 def require_admin():
@@ -11,8 +10,10 @@ def require_admin():
         flash(" No tienes permisos para acceder a esta sección.", "error")
         return False
     return True
+
 @admin_bp.route("/")
 def admin_panel():
+
     if not require_admin():
         return redirect(url_for("home"))
     logs = ejecutar_select("""
@@ -54,6 +55,59 @@ def admin_panel():
             "ok": (dvv_real == dvv_registrado) if dvv_real is not None else True
         })
     return render_template("admin/AdminPanel.html", logs=logs, dv_info=dv_info)
+
+@admin_bp.route("/metrics")
+def admin_metrics():
+    """Devuelve métricas de integridad y conteos básicos en formato JSON.
+
+    Solo accesible para administradores.
+    """
+    if not require_admin():
+        return jsonify({"error": "No autorizado"}), 403
+
+    tablas = [
+        "usuarios", "muestras", "reactivos", "experimentos",
+        "laboratorios", "reservas_equipos", "equipos", "audits_logs"
+    ]
+
+    dv_info = []
+    for tabla in tablas:
+        try:
+            if tabla == "audits_logs":
+                filas = ejecutar_select(f"SELECT dvh FROM {tabla}")
+            else:
+                filas = ejecutar_select(f"SELECT dvh FROM {tabla} WHERE estado_logico = 0")
+            dvv_real = sum(f["dvh"] for f in filas if f["dvh"] is not None)
+        except sqlite3.OperationalError:
+            dvv_real = None
+
+        reg = ejecutar_select(
+            "SELECT dvv FROM verificaciones_verticales WHERE tabla = ?",
+            (tabla,),
+        )
+        dvv_registrado = reg[0]["dvv"] if reg else None
+
+        try:
+            total = ejecutar_select(
+                f"SELECT COUNT(*) AS total FROM {tabla}"
+            )[0]["total"]
+        except sqlite3.OperationalError:
+            total = None
+
+        dv_info.append(
+            {
+                "tabla": tabla,
+                "dvv_real": dvv_real,
+                "dvv_registrado": dvv_registrado,
+                "ok": (dvv_real == dvv_registrado)
+                if dvv_real is not None
+                else True,
+                "total_registros": total,
+            }
+        )
+
+    return jsonify({"tablas": dv_info})
+
 @admin_bp.route("/recalcular/<tabla>", methods=["POST"])
 def recalcular_tabla(tabla):
     if not require_admin():
@@ -72,13 +126,26 @@ def recalcular_tabla(tabla):
             cursor.execute(f"UPDATE {tabla} SET dvh = ? WHERE id = ?", (nuevo_dvh, fila["id"]))
         conn.commit()
         conn.close()
-        
 
         recalcular_dvv(tabla)
+
+        usuario_id = session.get("usuario_id")
+        try:
+            registrar_auditoria(
+                usuario_id,
+                f"RECALCULAR INTEGRIDAD TABLA {tabla.upper()}",
+                "verificaciones_verticales",
+                0,
+                request.remote_addr,
+            )
+        except Exception:
+            pass
+
         flash(f" Integridad recalculada para la tabla {tabla}.", "success")
     except Exception as e:
         flash(f" Error recalculando {tabla}: {e}", "error")
     return redirect(url_for("admin_bp.admin_panel"))
+
 @admin_bp.route("/recalcular_todo", methods=["POST"])
 def recalcular_todo():
     if not require_admin():
@@ -104,5 +171,17 @@ def recalcular_todo():
         conn.close()
         
         recalcular_dvv(tabla)
+    try:
+        usuario_id = session.get("usuario_id")
+        registrar_auditoria(
+            usuario_id,
+            "RECALCULAR INTEGRIDAD TODAS LAS TABLAS",
+            "verificaciones_verticales",
+            0,
+            request.remote_addr,
+        )
+    except Exception:
+        pass
+
     flash(" Se recalculó la integridad de TODAS las tablas.", "success")
     return redirect(url_for("admin_bp.admin_panel"))

@@ -20,7 +20,10 @@
   <section class="hero">
     <div class="heroText" data-aos="fade-down">
       <h1>Tu laboratorio, más ordenado, seguro y productivo.</h1>
-      <button id="startBtn">CONOCE MÁS</button>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <button id="guestBtn">CONTINUAR COMO INVITADO</button>
+        <button id="loginBtn">INICIAR SESIÓN</button>
+      </div>
     </div>
   </section>
 
@@ -53,9 +56,16 @@
         yearSpan.textContent = new Date().getFullYear();
       }
 
-      const startBtn = document.getElementById('startBtn');
-      if (startBtn) {
-        startBtn.addEventListener('click', function() {
+      const guestBtn = document.getElementById('guestBtn');
+      if (guestBtn) {
+        guestBtn.addEventListener('click', function() {
+          window.location.href = "{{ url_for('guest') }}";
+        });
+      }
+
+      const loginBtn = document.getElementById('loginBtn');
+      if (loginBtn) {
+        loginBtn.addEventListener('click', function() {
           window.location.href = "{{ url_for('login_bp.login') }}";
         });
       }

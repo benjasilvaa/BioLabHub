@@ -192,12 +192,8 @@
                 </td>
                 <td>
                   <div class="edit-actions">
-                    
                     <button class="btn-editar" data-id="{{ exp['id'] }}">Editar</button>
-
-                    <form method="POST" action="{{ url_for('experiments_bp.delete_experiment', id=exp['id']) }}" onsubmit="return confirm('¿Eliminar este experimento?');" style="display:inline;">
-                      <button class="btn-eliminar" type="submit">Eliminar</button>
-                    </form>
+                    <button class="btn-eliminar" type="button" data-id="{{ exp['id'] }}">Eliminar</button>
                   </div>
                 </td>
               </tr>
@@ -320,10 +316,12 @@
             const r = await fetch(`/experiments/get/${id}`);
             if (!r.ok) {
               const err = await r.json().catch(() => ({}));
+              window.BioLabHubLog && window.BioLabHubLog.add("fetch_error", "Error obteniendo experimento", { id, status: r.status, error: err.error || null });
               alert(err.error || 'No autorizado o error al traer datos.');
               return;
             }
             const data = await r.json();
+            window.BioLabHubLog && window.BioLabHubLog.add("fetch", "Experimento cargado para edición", { id });
             const exp = data.experimento;
             const usuarios = data.usuarios || [];
 
@@ -380,6 +378,39 @@
           } catch (error) {
             console.error(error);
             alert('Error al cargar el experimento. Revisa la consola.');
+          }
+        });
+      });
+
+      // Eliminar experimento vía API REST JSON
+      document.querySelectorAll('.btn-eliminar').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          if (!confirm('¿Eliminar este experimento?')) return;
+
+          try {
+            const resp = await fetch(`/experiments/api/${id}`, {
+              method: 'DELETE',
+              headers: {
+                'Accept': 'application/json'
+              }
+            });
+
+            const data = await resp.json().catch(() => ({}));
+
+            if (!resp.ok) {
+              window.BioLabHubLog && window.BioLabHubLog.add('fetch_error', 'Error eliminando experimento', { id, status: resp.status, error: data.error || null });
+              alert(data.error || 'Error al eliminar el experimento.');
+              return;
+            }
+
+            window.BioLabHubLog && window.BioLabHubLog.add('fetch', 'Experimento eliminado vía API', { id });
+            alert(data.mensaje || 'Experimento eliminado.');
+            window.location.reload();
+          } catch (err) {
+            console.error(err);
+            window.BioLabHubLog && window.BioLabHubLog.add('fetch_exception', 'Excepción eliminando experimento', { id, error: String(err) });
+            alert('Error inesperado al eliminar el experimento. Revisa la consola.');
           }
         });
       });

@@ -186,6 +186,33 @@ def crear_bd():
         print("Usuario admin creado: admin@biolabhub.com / admin123")
     else:
         print("Usuario admin ya existe.")
+
+    # Usuario invitado por defecto (rol 'invitado')
+    cursor.execute("SELECT * FROM usuarios WHERE rol = 'invitado'")
+    invitado_existente = cursor.fetchone()
+    if not invitado_existente:
+        contraseña_inv = b"invitado123"
+        hash_inv = bcrypt.hashpw(contraseña_inv, bcrypt.gensalt()).decode("utf-8")
+        datos_inv = {
+            "nombre": "Invitado",
+            "email": "invitado@biolabhub.com",
+            "contraseña_hash": hash_inv,
+            "rol": "invitado",
+            "estado_logico": 0
+        }
+        dvh_inv = calcular_dvh(datos_inv)
+        cursor.execute(
+            """
+            INSERT INTO usuarios (nombre, email, contraseña_hash, rol, estado_logico, dvh)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            ("Invitado", "invitado@biolabhub.com", hash_inv, "invitado", 0, dvh_inv),
+        )
+        conn.commit()
+        print("Usuario invitado creado: invitado@biolabhub.com / invitado123")
+    else:
+        print("Usuario invitado ya existe.")
+
     conn.commit()
     conn.close()
     print("Base de datos verificada y actualizada correctamente.")

@@ -10,6 +10,31 @@ from db import (
 )
 template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend", "pages", "samples")
 samples_bp = Blueprint("samples_bp", __name__, template_folder=template_dir, static_folder=template_dir)
+
+def post_proceso_muestra(accion, muestra_id, datos, ip, usuario_id):
+    try:
+        from servidor import socketio
+        registrar_auditoria(
+            usuario_id,
+            accion,
+            "muestras",
+            muestra_id,
+            ip,
+        )
+        recalcular_dvv("muestras")
+        nombre = datos.get("nombre") or f"ID {muestra_id}"
+        if accion == "CREAR MUESTRA":
+            texto = f"Nueva muestra agregada: {nombre}"
+        elif accion == "ACTUALIZAR MUESTRA":
+            texto = f"Muestra '{nombre}' actualizada."
+        elif accion == "ELIMINAR MUESTRA":
+            texto = f"Muestra ID {muestra_id} eliminada."
+        else:
+            texto = f"Acción sobre muestra ({accion}): {nombre}"
+        socketio.emit("nuevo_evento", texto)
+    except Exception as e:
+        print(f"Error en proceso posterior de muestra: {e}")
+
 @samples_bp.route("/samples")
 def samples():
     if "usuario_id" not in session:
@@ -54,6 +79,7 @@ def samples():
                            muestras=muestras,
                            laboratorios=laboratorios,
                            stats=stats)
+
 @samples_bp.route("/samples/detail/<int:id>")
 def sample_detail(id):
     sample = ejecutar_select("""
@@ -66,6 +92,7 @@ def sample_detail(id):
     if not sample:
         return jsonify({"error": "Muestra no encontrada"}), 404
     return jsonify(sample[0])
+
 @samples_bp.route("/samples/add", methods=["POST"])
 def add_sample():
     if "usuario_id" not in session:
@@ -84,12 +111,20 @@ def add_sample():
     datos_fila = {k: fila[k] for k in fila.keys() if k != "dvh"}
     dvh = calcular_dvh(datos_fila)
     ejecutar_update("UPDATE muestras SET dvh = ? WHERE id = ?", (dvh, new_id))
-    registrar_auditoria(responsable_id, "CREAR MUESTRA", "muestras", new_id, request.remote_addr)
-    recalcular_dvv("muestras")
-    from servidor import socketio
-    socketio.emit("nuevo_evento", f"Nueva muestra agregada: {nombre}")
+    datos_muestra = {"nombre": nombre}
+    from servidor import lanzar_tarea_en_segundo_plano
+    lanzar_tarea_en_segundo_plano(
+        post_proceso_muestra,
+        "CREAR MUESTRA",
+        new_id,
+        datos_muestra,
+        request.remote_addr,
+        responsable_id,
+    )
+
     flash("Muestra creada correctamente.", "success")
     return redirect(url_for("samples_bp.samples"))
+
 @samples_bp.route("/samples/update/<int:id>", methods=["POST"])
 def update_sample(id):
     nombre = request.form.get("nombre")
@@ -105,12 +140,20 @@ def update_sample(id):
     datos_fila = {k: fila[k] for k in fila.keys() if k != "dvh"}
     dvh = calcular_dvh(datos_fila)
     ejecutar_update("UPDATE muestras SET dvh = ? WHERE id = ?", (dvh, id))
-    registrar_auditoria(session["usuario_id"], "ACTUALIZAR MUESTRA", "muestras", id, request.remote_addr)
-    recalcular_dvv("muestras")
-    from servidor import socketio
-    socketio.emit("nuevo_evento", f"Muestra '{nombre}' actualizada.")
+    datos_muestra = {"nombre": nombre}
+    from servidor import lanzar_tarea_en_segundo_plano
+    lanzar_tarea_en_segundo_plano(
+        post_proceso_muestra,
+        "ACTUALIZAR MUESTRA",
+        id,
+        datos_muestra,
+        request.remote_addr,
+        session["usuario_id"],
+    )
+
     flash("Muestra actualizada correctamente.", "success")
     return redirect(url_for("samples_bp.samples"))
+
 @samples_bp.route("/samples/delete/<int:id>")
 def delete_sample(id):
     ejecutar_update("UPDATE muestras SET estado_logico=1 WHERE id=?", (id,))
@@ -118,9 +161,16 @@ def delete_sample(id):
     datos_fila = {k: fila[k] for k in fila.keys() if k != "dvh"}
     dvh = calcular_dvh(datos_fila)
     ejecutar_update("UPDATE muestras SET dvh = ? WHERE id = ?", (dvh, id))
-    registrar_auditoria(session["usuario_id"], "ELIMINAR MUESTRA", "muestras", id, request.remote_addr)
-    recalcular_dvv("muestras")
-    from servidor import socketio
-    socketio.emit("nuevo_evento", f"Muestra ID {id} eliminada.")
+    datos_muestra = {"nombre": fila.get("nombre") if hasattr(fila, "get") else fila["nombre"]}
+    from servidor import lanzar_tarea_en_segundo_plano
+    lanzar_tarea_en_segundo_plano(
+        post_proceso_muestra,
+        "ELIMINAR MUESTRA",
+        id,
+        datos_muestra,
+        request.remote_addr,
+        session["usuario_id"],
+    )
+
     flash("Muestra eliminada correctamente.", "success")
     return redirect(url_for("samples_bp.samples"))

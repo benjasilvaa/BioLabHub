@@ -134,25 +134,45 @@
       window.calendar.render();
     });
 
-    function eliminarReserva(rid) {
+    async function eliminarReserva(rid) {
       if (!confirm("¿Eliminar esta reserva?")) return;
 
-      fetch(`/equipreserve/delete/${rid}`, { method: "POST" })
-        .then(() => window.calendar.refetchEvents());
+      try {
+        const resp = await fetch(`/equipreserve/delete/${rid}`, { method: "POST" });
+        if (!resp.ok) {
+          window.BioLabHubLog && window.BioLabHubLog.add("fetch_error", "Error eliminando reserva", { rid, status: resp.status });
+          alert("No se pudo eliminar la reserva. Revisa tus permisos o vuelve a intentarlo.");
+          return;
+        }
+        window.BioLabHubLog && window.BioLabHubLog.add("fetch", "Reserva eliminada", { rid });
+        window.calendar.refetchEvents();
+      } catch (err) {
+        window.BioLabHubLog && window.BioLabHubLog.add("fetch_exception", "Excepcin eliminando reserva", { rid, error: String(err) });
+        alert("Ocurri un error de comunicacin con el servidor.");
+      }
     }
 
-    function editarReserva(rid) {
-      fetch(`/equipreserve/get/${rid}`)
-        .then(r => r.json())
-        .then(data => {
+    async function editarReserva(rid) {
+      try {
+        const r = await fetch(`/equipreserve/get/${rid}`);
+        if (!r.ok) {
+          window.BioLabHubLog && window.BioLabHubLog.add("fetch_error", "Error obteniendo reserva", { rid, status: r.status });
+          alert("No se pudo cargar la reserva para edicin.");
+          return;
+        }
+        const data = await r.json();
 
-          document.getElementById("editar_equipo").value = data.equipo;
-          document.getElementById("editar_inicio").value = data.fecha_inicio;
-          document.getElementById("editar_fin").value = data.fecha_fin;
+        document.getElementById("editar_equipo").value = data.equipo;
+        document.getElementById("editar_inicio").value = data.fecha_inicio;
+        document.getElementById("editar_fin").value = data.fecha_fin;
 
-          document.getElementById("formEditar").action = `/equipreserve/edit/${rid}`;
-          abrirModal();
-        });
+        document.getElementById("formEditar").action = `/equipreserve/edit/${rid}`;
+        window.BioLabHubLog && window.BioLabHubLog.add("fetch", "Reserva cargada para edicin", { rid });
+        abrirModal();
+      } catch (err) {
+        window.BioLabHubLog && window.BioLabHubLog.add("fetch_exception", "Excepcin obteniendo reserva", { rid, error: String(err) });
+        alert("Ocurri un error al cargar la reserva.");
+      }
     }
 
     function abrirModal() {

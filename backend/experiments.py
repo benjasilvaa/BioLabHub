@@ -59,6 +59,325 @@ def post_proceso_experimento(accion, registro_id, datos, ip, usuario_id):
     except Exception as e:
         print(f"Error en proceso posterior al experimento: {e}")
 # -----------------------------
+# API REST JSON
+# -----------------------------
+@experiments_bp.route("/api", methods=["GET"])
+def api_list_experiments():
+    """Lista experimentos en formato JSON para el usuario actual o admin."""
+    if "usuario_id" not in session:
+        return jsonify({"error": "No autenticado"}), 401
+
+    conn = conectar_bd()
+    try:
+        cur = conn.cursor()
+        rol = session.get("rol")
+        usuario_id = session.get("usuario_id")
+
+        if rol == "admin":
+            cur.execute(
+                """
+                SELECT id, titulo, descripcion, fecha_inicio, fecha_fin,
+                       estado, responsable_id, protocolo_archivo
+                FROM experimentos
+                WHERE estado_logico = 0 OR estado_logico IS NULL
+                ORDER BY id DESC
+                """
+            )
+        else:
+            cur.execute(
+                """
+                SELECT id, titulo, descripcion, fecha_inicio, fecha_fin,
+                       estado, responsable_id, protocolo_archivo
+                FROM experimentos
+                WHERE (estado_logico = 0 OR estado_logico IS NULL)
+                  AND responsable_id = ?
+                ORDER BY id DESC
+                """,
+                (usuario_id,),
+            )
+        filas = [dict(r) for r in cur.fetchall()]
+        return jsonify({"experimentos": filas})
+    except Exception as e:
+        return jsonify({"error": f"Error al listar experimentos: {e}"}), 500
+    finally:
+        conn.close()
+
+
+@experiments_bp.route("/api", methods=["POST"])
+def api_create_experiment():
+    """Crea un experimento recibiendo JSON y devuelve el registro creado."""
+    from servidor import lanzar_tarea_en_segundo_plano
+
+    if "usuario_id" not in session:
+        return jsonify({"error": "No autenticado"}), 401
+
+    data = request.get_json(silent=True) or {}
+    titulo = (data.get("titulo") or "").strip()
+    descripcion = (data.get("descripcion") or "").strip()
+    fecha_inicio = data.get("fecha_inicio") or None
+    fecha_fin = data.get("fecha_fin") or None
+    estado = data.get("estado") or "Planificado"
+
+    if not titulo or not descripcion:
+        return jsonify({"error": "Título y descripción son obligatorios"}), 400
+
+    # Validar fechas (no en pasado y fin no anterior a inicio)
+    if fecha_inicio:
+        from datetime import datetime
+
+        try:
+            fecha_inicio_dt = datetime.strptime(fecha_inicio, "%Y-%m-%d").date()
+            if fecha_inicio_dt < datetime.now().date():
+                return (
+                    jsonify({"error": "La fecha de inicio no puede estar en el pasado."}),
+                    400,
+                )
+            if fecha_fin:
+                fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d").date()
+                if fecha_fin_dt < fecha_inicio_dt:
+                    return (
+                        jsonify(
+                            {
+                                "error": "La fecha de fin no puede ser anterior a la fecha de inicio.",
+                            }
+                        ),
+                        400,
+                    )
+        except ValueError:
+            return jsonify({"error": "Formato de fecha inválido"}), 400
+
+    # Determinar responsable
+    if session.get("rol") == "admin" and data.get("responsable"):
+        responsable = data.get("responsable")
+    else:
+        responsable = session.get("usuario_id")
+
+    conn = conectar_bd()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            INSERT INTO experimentos
+            (titulo, descripcion, fecha_inicio, fecha_fin, estado,
+             responsable_id, protocolo_archivo, dvh)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (titulo, descripcion, fecha_inicio, fecha_fin, estado, responsable, None, 0),
+        )
+        nuevo_id = cur.lastrowid
+        conn.commit()
+
+        datos = {
+            "titulo": titulo,
+            "descripcion": descripcion,
+            "fecha_inicio": fecha_inicio,
+            "fecha_fin": fecha_fin,
+            "estado": estado,
+            "responsable_id": str(responsable) if responsable else "",
+            "protocolo_archivo": "",
+        }
+        dvh = sum(len(str(v)) for v in datos.values() if v is not None)
+        cur.execute("UPDATE experimentos SET dvh = ? WHERE id = ?", (dvh, nuevo_id))
+        conn.commit()
+
+        lanzar_tarea_en_segundo_plano(
+            post_proceso_experimento,
+            "CREAR EXPERIMENTO (API)",
+            nuevo_id,
+            datos,
+            request.remote_addr,
+            session.get("usuario_id"),
+        )
+
+        datos["id"] = nuevo_id
+        return jsonify({"mensaje": "Experimento creado", "experimento": datos}), 201
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": f"Error al crear experimento: {e}"}), 500
+    finally:
+        conn.close()
+
+
+@experiments_bp.route("/api/<int:id>", methods=["GET"])
+def api_get_experiment(id):
+    """Obtiene un experimento específico en formato JSON."""
+    if "usuario_id" not in session:
+        return jsonify({"error": "No autenticado"}), 401
+
+    conn = conectar_bd()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, titulo, descripcion, fecha_inicio, fecha_fin,
+                   estado, responsable_id, protocolo_archivo
+            FROM experimentos
+            WHERE id = ? AND (estado_logico = 0 OR estado_logico IS NULL)
+            """,
+            (id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"error": "Experimento no encontrado"}), 404
+
+        if session.get("rol") != "admin" and row["responsable_id"] != session.get(
+            "usuario_id"
+        ):
+            return jsonify({"error": "No autorizado"}), 403
+
+        return jsonify({"experimento": dict(row)})
+    except Exception as e:
+        return jsonify({"error": f"Error al obtener experimento: {e}"}), 500
+    finally:
+        conn.close()
+
+
+@experiments_bp.route("/api/<int:id>", methods=["PUT"])
+def api_update_experiment(id):
+    """Actualiza un experimento a partir de JSON."""
+    from servidor import lanzar_tarea_en_segundo_plano
+
+    if "usuario_id" not in session:
+        return jsonify({"error": "No autenticado"}), 401
+
+    data = request.get_json(silent=True) or {}
+
+    conn = conectar_bd()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM experimentos WHERE id = ?", (id,))
+        experimento = cur.fetchone()
+        if not experimento:
+            return jsonify({"error": "Experimento no encontrado"}), 404
+
+        if session.get("rol") != "admin" and experimento["responsable_id"] != session.get(
+            "usuario_id"
+        ):
+            return jsonify({"error": "No autorizado"}), 403
+
+        titulo = (data.get("titulo") or experimento["titulo"]).strip()
+        descripcion = (data.get("descripcion") or experimento["descripcion"]).strip()
+        fecha_inicio = data.get("fecha_inicio") or experimento["fecha_inicio"]
+        fecha_fin = data.get("fecha_fin") or experimento["fecha_fin"]
+        estado = data.get("estado") or experimento["estado"]
+
+        # Validar fechas
+        if fecha_inicio:
+            from datetime import datetime
+
+            try:
+                fecha_inicio_dt = datetime.strptime(fecha_inicio, "%Y-%m-%d").date()
+                if fecha_inicio_dt < datetime.now().date():
+                    return (
+                        jsonify({"error": "La fecha de inicio no puede estar en el pasado."}),
+                        400,
+                    )
+                if fecha_fin:
+                    fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d").date()
+                    if fecha_fin_dt < fecha_inicio_dt:
+                        return (
+                            jsonify(
+                                {
+                                    "error": "La fecha de fin no puede ser anterior a la fecha de inicio.",
+                                }
+                            ),
+                            400,
+                        )
+            except ValueError:
+                return jsonify({"error": "Formato de fecha inválido"}), 400
+
+        if session.get("rol") == "admin" and data.get("responsable"):
+            responsable = data.get("responsable")
+        else:
+            responsable = experimento["responsable_id"]
+
+        cur.execute(
+            """
+            UPDATE experimentos
+            SET titulo = ?, descripcion = ?, fecha_inicio = ?, fecha_fin = ?,
+                estado = ?, responsable_id = ?
+            WHERE id = ?
+            """,
+            (titulo, descripcion, fecha_inicio, fecha_fin, estado, responsable, id),
+        )
+
+        datos = {
+            "titulo": titulo,
+            "descripcion": descripcion,
+            "fecha_inicio": fecha_inicio,
+            "fecha_fin": fecha_fin,
+            "estado": estado,
+            "responsable_id": str(responsable) if responsable else "",
+            "protocolo_archivo": experimento["protocolo_archivo"] or "",
+        }
+        dvh = sum(len(str(v)) for v in datos.values())
+        cur.execute("UPDATE experimentos SET dvh = ? WHERE id = ?", (dvh, id))
+        conn.commit()
+
+        lanzar_tarea_en_segundo_plano(
+            post_proceso_experimento,
+            "ACTUALIZAR EXPERIMENTO (API)",
+            id,
+            datos,
+            request.remote_addr,
+            session.get("usuario_id"),
+        )
+
+        datos["id"] = id
+        return jsonify({"mensaje": "Experimento actualizado", "experimento": datos})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": f"Error al actualizar experimento: {e}"}), 500
+    finally:
+        conn.close()
+
+
+@experiments_bp.route("/api/<int:id>", methods=["DELETE"])
+def api_delete_experiment(id):
+    """Elimina lógicamente un experimento desde la API JSON."""
+    from servidor import lanzar_tarea_en_segundo_plano
+
+    if "usuario_id" not in session:
+        return jsonify({"error": "No autenticado"}), 401
+
+    conn = conectar_bd()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM experimentos WHERE id = ?", (id,))
+        experimento = cur.fetchone()
+        if not experimento:
+            return jsonify({"error": "Experimento no encontrado"}), 404
+
+        responsable_id = experimento["responsable_id"]
+        usuario_actual = session.get("usuario_id")
+        es_admin = session.get("rol") == "admin"
+        if not es_admin and usuario_actual != responsable_id:
+            return jsonify({"error": "Solo el responsable o un administrador pueden eliminar este experimento."}), 403
+
+        cur.execute(
+            "UPDATE experimentos SET estado_logico = 1 WHERE id = ?",
+            (id,),
+        )
+        conn.commit()
+
+        lanzar_tarea_en_segundo_plano(
+            post_proceso_experimento,
+            "ELIMINAR EXPERIMENTO (API)",
+            id,
+            dict(experimento),
+            request.remote_addr,
+            session.get("usuario_id"),
+        )
+
+        return jsonify({"mensaje": "Experimento eliminado"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": f"Error al eliminar experimento: {e}"}), 500
+    finally:
+        conn.close()
+
+
+# -----------------------------
 # LISTADO
 # -----------------------------
 @experiments_bp.route("/")
@@ -118,14 +437,19 @@ def add_experiment():
     fecha_inicio = request.form.get("fecha_inicio")
     fecha_fin = request.form.get("fecha_fin")
     estado = request.form.get("estado")
-    # Validar que la fecha de inicio no sea anterior a la actual
+    # Validar fechas (no en pasado y fin no anterior a inicio)
     if fecha_inicio:
         from datetime import datetime
         try:
             fecha_inicio_dt = datetime.strptime(fecha_inicio, "%Y-%m-%d").date()
             if fecha_inicio_dt < datetime.now().date():
-                flash("No puedes hacer reservas en fechas pasadas.", "error")
+                flash("La fecha de inicio no puede estar en el pasado.", "error")
                 return redirect(url_for("experiments_bp.experiments"))
+            if fecha_fin:
+                fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d").date()
+                if fecha_fin_dt < fecha_inicio_dt:
+                    flash("La fecha de fin no puede ser anterior a la fecha de inicio.", "error")
+                    return redirect(url_for("experiments_bp.experiments"))
         except ValueError:
             flash("Formato de fecha inválido.", "error")
             return redirect(url_for("experiments_bp.experiments"))
@@ -269,45 +593,43 @@ def update_experiment(id):
         if not experimento:
             flash("Experimento no encontrado.", "error")
             return redirect(url_for("experiments_bp.experiments"))
-        # Verificar permisos
         if (session.get("rol") != "admin" and 
                 experimento["responsable_id"] != session.get("usuario_id")):
             flash("No tienes permiso para editar este experimento.", "error")
             return redirect(url_for("experiments_bp.experiments"))
-        # Obtener datos del formulario
         titulo = request.form.get("titulo")
         descripcion = request.form.get("descripcion")
         fecha_inicio = request.form.get("fecha_inicio")
         fecha_fin = request.form.get("fecha_fin")
         estado = request.form.get("estado")
-        # Validar que la fecha de inicio no sea anterior a la actual
         if fecha_inicio:
             from datetime import datetime
             try:
                 fecha_inicio_dt = datetime.strptime(fecha_inicio, "%Y-%m-%d").date()
                 if fecha_inicio_dt < datetime.now().date():
-                    flash("No puedes hacer reservas en fechas pasadas.", "error")
+                    flash("La fecha de inicio no puede estar en el pasado.", "error")
                     return redirect(url_for("experiments_bp.experiments"))
+                if fecha_fin:
+                    fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d").date()
+                    if fecha_fin_dt < fecha_inicio_dt:
+                        flash("La fecha de fin no puede ser anterior a la fecha de inicio.", "error")
+                        return redirect(url_for("experiments_bp.experiments"))
             except ValueError:
                 flash("Formato de fecha inválido.", "error")
                 return redirect(url_for("experiments_bp.experiments"))
-        # Determinar el responsable del experimento
         if session.get("rol") == "admin":
             responsable = request.form.get("responsable") or experimento["responsable_id"]
         else:
             responsable = experimento["responsable_id"]
-        # Manejo de archivo de protocolo
         archivo = request.files.get("protocolo")
-        archivo_nombre = experimento["protocolo_archivo"]  # Mantener el archivo actual por defecto
+        archivo_nombre = experimento["protocolo_archivo"]
         if archivo and archivo.filename:
             try:
-                # Si hay un archivo nuevo, guardarlo
                 archivo_nombre = secure_filename(archivo.filename)
                 archivo.save(os.path.join(UPLOAD_FOLDER, archivo_nombre))
             except Exception as e:
                 flash(f"Error al guardar el archivo: {str(e)}", "error")
                 return redirect(url_for("experiments_bp.experiments"))
-        # Actualizar el experimento
         cur.execute("""
             UPDATE experimentos 
             SET titulo = ?, descripcion = ?, fecha_inicio = ?, 
@@ -317,7 +639,6 @@ def update_experiment(id):
             titulo, descripcion, fecha_inicio, 
             fecha_fin, estado, responsable, archivo_nombre, id
         ))
-        # Calcular y actualizar DVH
         datos = {
             "titulo": titulo,
             "descripcion": descripcion,
@@ -330,7 +651,6 @@ def update_experiment(id):
         dvh = sum(len(str(v)) for v in datos.values())
         cur.execute("UPDATE experimentos SET dvh = ? WHERE id = ?", (dvh, id))
         conn.commit()
-        # Ejecutar tareas en segundo plano
         lanzar_tarea_en_segundo_plano(
             post_proceso_experimento,
             "ACTUALIZAR EXPERIMENTO",
@@ -355,9 +675,10 @@ def delete_experiment(id):
         Response: Redirección al listado de experimentos
     """
     from servidor import lanzar_tarea_en_segundo_plano
-    if "usuario_id" not in session or session.get("rol") != "admin":
-        flash("No tienes permisos para realizar esta acción.", "error")
+    if "usuario_id" not in session:
+        flash("Debes iniciar sesión para realizar esta acción.", "error")
         return redirect(url_for("login_bp.login"))
+
     conn = conectar_bd()
     try:
         cur = conn.cursor()
@@ -367,11 +688,20 @@ def delete_experiment(id):
         if not experimento:
             flash("Experimento no encontrado.", "error")
             return redirect(url_for("experiments_bp.experiments"))
+
+        responsable_id = experimento["responsable_id"]
+        usuario_actual = session.get("usuario_id")
+        es_admin = session.get("rol") == "admin"
+        if not es_admin and usuario_actual != responsable_id:
+            flash("Solo el responsable o un administrador pueden eliminar este experimento.", "error")
+            return redirect(url_for("experiments_bp.experiments"))
+
         # Eliminar lógicamente el experimento (marcar como eliminado)
         cur.execute(
             "UPDATE experimentos SET estado_logico = 1 WHERE id = ?", 
             (id,)
         )
+
         conn.commit()
         # Ejecutar tareas en segundo plano
         lanzar_tarea_en_segundo_plano(

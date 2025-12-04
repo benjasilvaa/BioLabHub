@@ -15,8 +15,13 @@
       <img src="{{ url_for('static', filename='assets/BioLabHub (negro).png') }}" alt="BioLabHub Logo">
     </div>
     <div class="user-avatar">
-      <span> {{ session['nombre'] if 'nombre' in session else 'Invitado' }}</span>
-      <a href="{{ url_for('login_bp.logout') }}" class="logout-btn">Cerrar sesión</a>
+      {% if 'usuario_id' in session %}
+        <span>{{ session['nombre'] }}</span>
+        <a href="{{ url_for('login_bp.logout') }}" class="logout-btn">Cerrar sesión</a>
+      {% else %}
+        <a href="{{ url_for('login_bp.login') }}" class="logout-btn">Iniciar sesión</a>
+        <a href="{{ url_for('login_bp.register') }}" class="logout-btn" style="background-color:#43a047;">Registrarse</a>
+      {% endif %}
     </div>
   </nav>
 
@@ -39,14 +44,53 @@
     
     <div class="main">
 
-      
+      {% if session.get('rol') == 'invitado' and 'usuario_id' not in session %}
+
+      <!-- Vista especial para invitados -->
+      <section class="welcome">
+        <h1>Bienvenido a BioLabHub como invitado</h1>
+        <p class="desc">
+          Explora la plataforma y descubre todo lo que puedes hacer si creas una cuenta o inicias sesión.
+        </p>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h2>✔</h2>
+            <p>Visualizar el panel y navegación básica</p>
+          </div>
+          <div class="stat-card">
+            <h2>🔒</h2>
+            <p>Registrar muestras (requiere cuenta)</p>
+          </div>
+          <div class="stat-card">
+            <h2>🔒</h2>
+            <p>Crear y planificar experimentos</p>
+          </div>
+          <div class="stat-card">
+            <h2>🔒</h2>
+            <p>Reservar equipos del laboratorio</p>
+          </div>
+        </div>
+        <div class="qa-grid" style="margin-top: 1.5rem;">
+          <a href="{{ url_for('login_bp.login') }}" class="qa-item">
+            <img src="{{ url_for('static', filename='assets/icon-experiment.png') }}">
+            <h3>Iniciar sesión</h3>
+          </a>
+          <a href="{{ url_for('login_bp.register') }}" class="qa-item">
+            <img src="{{ url_for('static', filename='assets/icon-sample.png') }}">
+            <h3>Crear cuenta y empezar</h3>
+          </a>
+        </div>
+      </section>
+
+      {% else %}
+
+      <!-- Vista normal para usuarios autenticados -->
       <section class="welcome">
         <h1>Hola {{ session['nombre'] }}, bienvenido a BioLabHub </h1>
         <p class="desc">
           Tu centro de control para gestionar muestras, experimentos, reactivos y reservas de equipos.
         </p>
 
-        
         <div class="stats-grid">
           <div class="stat-card">
             <h2>{{ stats.experimentos_activos }}</h2>
@@ -67,7 +111,6 @@
         </div>
       </section>
 
-      
       <section class="quick-access">
         <h2>Accesos rápidos</h2>
         <div class="qa-grid">
@@ -95,7 +138,6 @@
         </div>
       </section>
 
-      
       <section class="activity">
         <h2>Tu actividad reciente</h2>
         <ul class="activity-list">
@@ -114,7 +156,6 @@
         </ul>
       </section>
 
-      
       <section class="experiments">
         <h2>TUS EXPERIMENTOS</h2>
         <div class="experiment-list">
@@ -138,7 +179,6 @@
         </div>
       </section>
 
-      
       <section class="equipment">
         <h2>EQUIPOS RESERVADOS</h2>
         <div class="equipment-list">
@@ -162,7 +202,6 @@
         </div>
       </section>
 
-      
       <section class="news">
         <h2>Novedades del laboratorio </h2>
         <ul class="news-list">
@@ -172,6 +211,8 @@
           <li> Mejoras en seguridad y auditoría del sistema.</li>
         </ul>
       </section>
+
+      {% endif %}
 
     </div>
   </div>
