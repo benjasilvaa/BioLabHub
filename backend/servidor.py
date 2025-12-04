@@ -66,4 +66,4 @@ if __name__ == "__main__":
         crear_bd()
     else:
         print(" Base de datos encontrada.")
-    socketio.run(app, debug=True)
+    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
